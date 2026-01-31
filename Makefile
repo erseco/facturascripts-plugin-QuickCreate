@@ -1,6 +1,6 @@
 # Makefile to facilitate the use of Docker for FacturaScripts plugin development
 
-.PHONY: help up upd down pull build shell clean package enable-plugin rebuild lint lint-js format format-js test logs ps fresh check-docker
+.PHONY: help up upd down pull build shell clean package enable-plugin rebuild lint lint-js format format-js test test-js logs ps fresh check-docker check-node
 
 # Define SED_INPLACE based on the operating system
 ifeq ($(shell uname), Darwin)
@@ -92,6 +92,10 @@ rebuild: check-docker
 	@docker compose exec facturascripts sh -c "curl -s http://localhost:8080/deploy?action=rebuild > /dev/null"
 	@echo "Rebuild complete!"
 
+# Check if Node.js is installed
+check-node:
+	@command -v node > /dev/null 2>&1 || (echo "Error: Node.js is not installed. Please install Node.js 18+ first." && exit 1)
+
 # Run PHP CodeSniffer to check code style
 lint: check-docker upd
 	@echo "Running PHP CodeSniffer..."
@@ -101,47 +105,19 @@ lint: check-docker upd
 	@echo ""
 	@echo "✅ Lint check completed!"
 
-# Run Biome to check JavaScript code style
-lint-js: check-docker upd
+# Run Biome to check JavaScript code style (requires Node.js 18+)
+lint-js: check-node
 	@echo "Running Biome JavaScript linter..."
 	@echo ""
-	@docker compose exec facturascripts sh -c '\
-		cd /var/www/html/Plugins/QuickCreate && \
-		if [ ! -f /tmp/biome ]; then \
-			echo "→ Downloading Biome..." && \
-			ARCH=$$(uname -m) && \
-			LIBC=$$(ldd /bin/sh 2>/dev/null | grep -q musl && echo "-musl" || echo "") && \
-			if [ "$$ARCH" = "aarch64" ] || [ "$$ARCH" = "arm64" ]; then \
-				BIOME_ARCH="biome-linux-arm64$$LIBC"; \
-			else \
-				BIOME_ARCH="biome-linux-x64$$LIBC"; \
-			fi && \
-			curl -fsSL -o /tmp/biome https://github.com/biomejs/biome/releases/latest/download/$$BIOME_ARCH && \
-			chmod +x /tmp/biome; \
-		fi && \
-		/tmp/biome lint Assets/JS/ --colors=force'
+	@npx --yes @biomejs/biome lint Assets/JS/ --colors=force
 	@echo ""
 	@echo "✅ JavaScript lint completed!"
 
-# Run Biome to automatically fix JavaScript code style
-format-js: check-docker upd
+# Run Biome to automatically fix JavaScript code style (requires Node.js 18+)
+format-js: check-node
 	@echo "Running Biome JavaScript formatter..."
 	@echo ""
-	@docker compose exec facturascripts sh -c '\
-		cd /var/www/html/Plugins/QuickCreate && \
-		if [ ! -f /tmp/biome ]; then \
-			echo "→ Downloading Biome..." && \
-			ARCH=$$(uname -m) && \
-			LIBC=$$(ldd /bin/sh 2>/dev/null | grep -q musl && echo "-musl" || echo "") && \
-			if [ "$$ARCH" = "aarch64" ] || [ "$$ARCH" = "arm64" ]; then \
-				BIOME_ARCH="biome-linux-arm64$$LIBC"; \
-			else \
-				BIOME_ARCH="biome-linux-x64$$LIBC"; \
-			fi && \
-			curl -fsSL -o /tmp/biome https://github.com/biomejs/biome/releases/latest/download/$$BIOME_ARCH && \
-			chmod +x /tmp/biome; \
-		fi && \
-		/tmp/biome lint Assets/JS/ --write --unsafe --colors=force'
+	@npx --yes @biomejs/biome lint Assets/JS/ --write --unsafe --colors=force
 	@echo ""
 	@echo "✅ JavaScript formatting completed!"
 
@@ -168,6 +144,14 @@ test: check-docker upd
 	@docker compose exec facturascripts sh -c 'cd /var/www/html && php84 vendor/bin/phpunit -c phpunit-plugins.xml'
 	@echo ""
 	@echo "✅ Tests completed!"
+
+# Run JavaScript unit tests with Node.js native test runner (requires Node.js 18+)
+test-js: check-node
+	@echo "Running JavaScript unit tests..."
+	@echo ""
+	@node --test Test/js/*.test.js
+	@echo ""
+	@echo "✅ JavaScript tests completed!"
 
 # View logs
 logs:
@@ -198,13 +182,14 @@ help:
 	@echo "  ps                - Show container status"
 	@echo ""
 	@echo "Code Quality:"
-	@echo "  lint              - Run PHP CodeSniffer to check code style"
-	@echo "  lint-js           - Run Biome to check JavaScript code style"
-	@echo "  format            - Run PHP CS Fixer to automatically fix code style"
-	@echo "  format-js         - Run Biome to automatically fix JavaScript code style"
+	@echo "  lint              - Run PHP CodeSniffer to check code style (Docker)"
+	@echo "  lint-js           - Run Biome to check JavaScript code style (Node.js)"
+	@echo "  format            - Run PHP CS Fixer to fix code style (Docker)"
+	@echo "  format-js         - Run Biome to fix JavaScript code style (Node.js)"
 	@echo ""
 	@echo "Testing:"
-	@echo "  test              - Run unit tests inside container"
+	@echo "  test              - Run PHP unit tests inside container"
+	@echo "  test-js           - Run JavaScript unit tests (requires Node.js 18+)"
 	@echo ""
 	@echo "Plugin management:"
 	@echo "  enable-plugin     - Enable the plugin in FacturaScripts"

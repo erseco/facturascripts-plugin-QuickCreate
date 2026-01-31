@@ -70,6 +70,8 @@
                 this.processAccountFields();
                 this.observeDynamicContent();
                 this.enhanceNewSubaccountInput();
+                // Poll for new_subaccount input changes (when lines are added/removed)
+                this.startSubaccountInputPolling();
             }
         },
 
@@ -830,6 +832,11 @@
                         // Fill the target field with the new code
                         if (this.currentSubcuentaField) {
                             this.currentSubcuentaField.value = data.data.codsubcuenta;
+                            // If this is the new_subaccount input, trigger newLineAction to add the line
+                            if (this.currentSubcuentaField.id === 'new_subaccount' && typeof newLineAction === 'function') {
+                                this.currentSubcuentaField._validSubcuentaSelected = true;
+                                newLineAction(data.data.codsubcuenta);
+                            }
                         }
                         this.subcuentaModal.hide();
                         this.showNotification('success', data.message);
@@ -1129,6 +1136,7 @@
         },
 
         observeDynamicContent: function () {
+            const self = this;
             const observer = new MutationObserver((mutations) => {
                 mutations.forEach((mutation) => {
                     mutation.addedNodes.forEach((node) => {
@@ -1143,6 +1151,14 @@
                             if (node.classList?.contains('widget-autocomplete')) {
                                 this.processAccountField(node);
                             }
+
+                            // Check for new_subaccount input (for EditAsiento lines)
+                            if (node.id === 'new_subaccount' || node.querySelector?.('#new_subaccount')) {
+                                const input = node.id === 'new_subaccount' ? node : node.querySelector('#new_subaccount');
+                                if (input && !input._quickCreateEnhanced) {
+                                    self.enhanceNewSubaccountInput();
+                                }
+                            }
                         }
                     });
                 });
@@ -1152,6 +1168,30 @@
                 childList: true,
                 subtree: true
             });
+        },
+
+        // Poll for new_subaccount input that needs enhancement
+        startSubaccountInputPolling: function () {
+            const self = this;
+            setInterval(() => {
+                const input = document.getElementById('new_subaccount');
+                if (!input) return;
+
+                // Check if input needs enhancement:
+                // 1. Not marked as enhanced, OR
+                // 2. Dropdown doesn't exist in the same parent (input was replaced)
+                const dropdown = document.getElementById('quickCreateSubcuentaDropdown');
+                const needsEnhancement = !input._quickCreateEnhanced ||
+                    !dropdown ||
+                    dropdown.parentElement !== input.parentElement;
+
+                if (needsEnhancement) {
+                    console.log('[QuickCreate] Found input needing enhancement, enhancing...');
+                    // Reset the flag to ensure full re-enhancement
+                    input._quickCreateEnhanced = false;
+                    self.enhanceNewSubaccountInput();
+                }
+            }, 300);
         },
 
         // Enhance the new_subaccount input with autocomplete and quick create option
@@ -1164,21 +1204,30 @@
                 return;
             }
 
+            // Skip if already enhanced
+            if (input._quickCreateEnhanced) {
+                return;
+            }
+            input._quickCreateEnhanced = true;
+
             // Remove the original onchange handler to prevent "Subcuenta no encontrada" message
             // We will call newLineAction only when a valid subcuenta is selected
             input.removeAttribute('onchange');
             input._validSubcuentaSelected = false;
 
-            // Create dropdown container
+            // Create dropdown container - use unique ID based on input
             const dropdownId = 'quickCreateSubcuentaDropdown';
-            let dropdown = document.getElementById(dropdownId);
-            if (!dropdown) {
-                dropdown = document.createElement('div');
-                dropdown.id = dropdownId;
-                dropdown.className = 'subcuenta-dropdown d-none';
-                input.parentElement.style.position = 'relative';
-                input.parentElement.appendChild(dropdown);
+            // Remove old dropdown if exists (from previous input)
+            const oldDropdown = document.getElementById(dropdownId);
+            if (oldDropdown) {
+                oldDropdown.remove();
             }
+
+            const dropdown = document.createElement('div');
+            dropdown.id = dropdownId;
+            dropdown.className = 'subcuenta-dropdown d-none';
+            input.parentElement.style.position = 'relative';
+            input.parentElement.appendChild(dropdown);
 
             // Store reference to current input
             this.currentSubaccountLineInput = input;
@@ -1402,7 +1451,8 @@
                 .subcuenta-option:last-child {
                     border-bottom: none;
                 }
-                .subcuenta-option:hover {
+                .subcuenta-option:hover,
+                .subcuenta-option.selected {
                     background-color: #f8f9fa;
                 }
                 .subcuenta-create-option {
