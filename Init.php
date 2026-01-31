@@ -1,8 +1,8 @@
 <?php
 
 /**
- * This file is part of PluginTemplate plugin for FacturaScripts.
- * Copyright (C) 2025 Your Name <your@email.com>
+ * This file is part of QuickCreate plugin for FacturaScripts.
+ * Copyright (C) 2025 Ernesto Serrano <info@ernesto.es>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -18,52 +18,35 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-namespace FacturaScripts\Plugins\PluginTemplate;
+namespace FacturaScripts\Plugins\QuickCreate;
 
 use FacturaScripts\Core\Template\InitClass;
 
-/**
- * Plugin initialization class
- *
- * This class is called when the plugin is loaded.
- * It can be used to load extensions, modify core behavior, etc.
- *
- * @author Your Name <your@email.com>
- */
 class Init extends InitClass
 {
-    /**
-     * Called when the plugin is loaded
-     *
-     * @return void
-     */
     public function init(): void
     {
-        // Load your extensions here
-        // Example:
-        // $this->loadExtension(new Extension\Controller\EditCliente());
-        // $this->loadExtension(new Extension\Model\Cliente());
+        // Client document extensions
+        $this->loadExtension(new Extension\Controller\EditPresupuestoCliente());
+        $this->loadExtension(new Extension\Controller\EditPedidoCliente());
+        $this->loadExtension(new Extension\Controller\EditAlbaranCliente());
+        $this->loadExtension(new Extension\Controller\EditFacturaCliente());
+
+        // Supplier document extensions
+        $this->loadExtension(new Extension\Controller\EditPresupuestoProveedor());
+        $this->loadExtension(new Extension\Controller\EditPedidoProveedor());
+        $this->loadExtension(new Extension\Controller\EditAlbaranProveedor());
+        $this->loadExtension(new Extension\Controller\EditFacturaProveedor());
+
+        // Accounting extension
+        $this->loadExtension(new Extension\Controller\EditAsiento());
     }
 
-    /**
-     * Called when the plugin is updated
-     *
-     * @return void
-     */
     public function update(): void
     {
-        // Add update logic here if needed
-        // This is called when the plugin version changes
     }
 
-    /**
-     * Called when the plugin is uninstalled
-     *
-     * @return void
-     */
     public function uninstall(): void
     {
-        // Add cleanup logic here if needed
-        // This is called when the plugin is uninstalled
     }
 }
