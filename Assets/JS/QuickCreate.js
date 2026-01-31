@@ -69,7 +69,7 @@
                 this.createAccountModal();
                 this.processAccountFields();
                 this.observeDynamicContent();
-                this.enhanceFindSubaccountModal();
+                this.enhanceNewSubaccountInput();
             }
         },
 
@@ -1162,277 +1162,161 @@
             });
         },
 
-        // Enhance the findSubaccountModal with account filter and quick create option
-        enhanceFindSubaccountModal: function () {
+        // Enhance the new_subaccount input with autocomplete and quick create option
+        enhanceNewSubaccountInput: function () {
             const self = this;
-            const modal = document.getElementById('findSubaccountModal');
+            const input = document.getElementById('new_subaccount');
 
-            if (!modal) {
-                console.log('[QuickCreate] findSubaccountModal not found');
+            if (!input) {
+                console.log('[QuickCreate] new_subaccount input not found');
                 return;
             }
 
-            // Listen for modal show event
-            modal.addEventListener('shown.bs.modal', function () {
-                if (self.findSubaccountModalEnhanced) {
-                    // Just refresh the cuenta selector each time modal opens
-                    self.loadCuentasForSelector();
+            // Create dropdown container
+            const dropdownId = 'quickCreateSubcuentaDropdown';
+            let dropdown = document.getElementById(dropdownId);
+            if (!dropdown) {
+                dropdown = document.createElement('div');
+                dropdown.id = dropdownId;
+                dropdown.className = 'subcuenta-dropdown d-none';
+                input.parentElement.style.position = 'relative';
+                input.parentElement.appendChild(dropdown);
+            }
+
+            // Store reference to current input
+            this.currentSubaccountLineInput = input;
+
+            // Handle input changes with debounce
+            let searchTimeout = null;
+            input.addEventListener('input', function () {
+                clearTimeout(searchTimeout);
+                const query = this.value.trim();
+
+                if (query.length < 1) {
+                    dropdown.classList.add('d-none');
                     return;
                 }
 
-                console.log('[QuickCreate] Enhancing findSubaccountModal...');
-                self.injectCuentaSelector();
-                self.findSubaccountModalEnhanced = true;
+                searchTimeout = setTimeout(() => {
+                    self.searchSubcuentasForDropdown(query, dropdown, input);
+                }, 300);
             });
 
-            // Track which input triggered the modal
-            document.addEventListener('click', function (e) {
-                // Check if click was on a book button that opens findSubaccountModal
-                // The button can use data-bs-target OR onclick with jQuery
-                const bookBtn = e.target.closest('[data-bs-target="#findSubaccountModal"]') ||
-                                e.target.closest('button[onclick*="findSubaccountModal"]') ||
-                                e.target.closest('.btn-info');
-                if (bookBtn) {
-                    // Find the associated input field (in the same row or nearby)
-                    const row = bookBtn.closest('tr');
-                    if (row) {
-                        // Try different input name patterns
-                        const input = row.querySelector('input[name*="codsubcuenta"]') ||
-                                      row.querySelector('input[name="new_subaccount"]') ||
-                                      row.querySelector('input[placeholder="Subcuenta"]');
-                        if (input) {
-                            self.currentSubaccountLineInput = input;
-                            console.log('[QuickCreate] Tracked subcuenta input:', input.name);
-                        }
-                    }
+            // Handle focus
+            input.addEventListener('focus', function () {
+                const query = this.value.trim();
+                if (query.length >= 1 && dropdown.innerHTML) {
+                    dropdown.classList.remove('d-none');
                 }
             });
 
-            console.log('[QuickCreate] findSubaccountModal enhancement prepared');
-        },
-
-        // Inject the cuenta filter dropdown into the modal
-        injectCuentaSelector: function () {
-            const modal = document.getElementById('findSubaccountModal');
-            if (!modal) return;
-
-            const modalBody = modal.querySelector('.modal-body');
-            if (!modalBody) return;
-
-            // Find the search input container
-            const searchForm = modalBody.querySelector('form, .row');
-            if (!searchForm) return;
-
-            // Check if already injected
-            if (modal.querySelector('#quickCreateCuentaFilter')) return;
-
-            // Create the filter container
-            const filterContainer = document.createElement('div');
-            filterContainer.className = 'row mb-3';
-            filterContainer.id = 'quickCreateCuentaFilterContainer';
-            filterContainer.innerHTML = `
-                <div class="col-12">
-                    <label for="quickCreateCuentaFilter" class="form-label">${this.trans('filter-by-account')}</label>
-                    <select class="form-select" id="quickCreateCuentaFilter">
-                        <option value="">${this.trans('all-accounts')}</option>
-                    </select>
-                </div>
-            `;
-
-            // Insert at the beginning of modal body
-            modalBody.insertBefore(filterContainer, modalBody.firstChild);
-
-            // Load cuentas into selector
-            this.loadCuentasForSelector();
-
-            // Handle cuenta selection change
-            const self = this;
-            document.getElementById('quickCreateCuentaFilter').addEventListener('change', function () {
-                self.onCuentaFilterChange(this.value);
+            // Handle blur (hide dropdown after short delay to allow clicks)
+            input.addEventListener('blur', function () {
+                setTimeout(() => {
+                    dropdown.classList.add('d-none');
+                }, 200);
             });
 
-            console.log('[QuickCreate] Cuenta selector injected');
-        },
+            // Handle keyboard navigation
+            input.addEventListener('keydown', function (e) {
+                if (dropdown.classList.contains('d-none')) return;
 
-        // Load cuentas for the filter dropdown
-        loadCuentasForSelector: function () {
-            const self = this;
-            const select = document.getElementById('quickCreateCuentaFilter');
-            if (!select) return;
+                const options = dropdown.querySelectorAll('.subcuenta-option');
+                const selected = dropdown.querySelector('.subcuenta-option.selected');
+                let index = Array.from(options).indexOf(selected);
 
-            fetch(this.getApiUrl() + '?action=search-cuentas&query=')
-                .then(response => response.json())
-                .then(data => {
-                    if (!data.ok) return;
-
-                    let html = `<option value="">${self.trans('all-accounts')}</option>`;
-                    data.data.forEach(cuenta => {
-                        html += `<option value="${cuenta.idcuenta}" data-codcuenta="${self.escapeHtml(cuenta.codcuenta)}">${self.escapeHtml(cuenta.codcuenta)} - ${self.escapeHtml(cuenta.descripcion)}</option>`;
-                    });
-
-                    select.innerHTML = html;
-                })
-                .catch(error => {
-                    console.error('[QuickCreate] Error loading cuentas for selector:', error);
-                });
-        },
-
-        // Handle when a cuenta is selected in the filter
-        onCuentaFilterChange: function (idcuenta) {
-            const self = this;
-
-            if (!idcuenta) {
-                // Remove the create row if exists
-                this.removeCreateSubcuentaRow();
-                return;
-            }
-
-            // Get the next available subcuenta code for this cuenta
-            fetch(this.getApiUrl() + '?action=get-next-subcuenta-code&idcuenta=' + encodeURIComponent(idcuenta))
-                .then(response => response.json())
-                .then(data => {
-                    if (data.ok && data.data.codsubcuenta) {
-                        self.injectCreateSubcuentaRow(data.data.codsubcuenta, idcuenta);
-                    }
-                })
-                .catch(error => {
-                    console.error('[QuickCreate] Error getting next subcuenta code:', error);
-                });
-        },
-
-        // Inject the "Create subcuenta" row into the results table
-        injectCreateSubcuentaRow: function (suggestedCode, idcuenta) {
-            const modal = document.getElementById('findSubaccountModal');
-            if (!modal) return;
-
-            // Remove existing create row
-            this.removeCreateSubcuentaRow();
-
-            // Find the table or results container
-            const table = modal.querySelector('table tbody');
-            if (!table) {
-                console.log('[QuickCreate] Table not found in findSubaccountModal');
-                return;
-            }
-
-            // Create the new row
-            const createRow = document.createElement('tr');
-            createRow.id = 'quickCreateSubcuentaRow';
-            createRow.className = 'quick-create-subcuenta-row';
-            createRow.innerHTML = `
-                <td colspan="2" class="quick-create-subcuenta-cell">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div class="d-flex align-items-center flex-grow-1">
-                            <i class="fas fa-plus-circle text-success me-2"></i>
-                            <strong class="text-success me-2">${this.trans('create-subaccount-code')}:</strong>
-                            <span class="badge bg-success me-3">${this.escapeHtml(suggestedCode)}</span>
-                            <input type="text" class="form-control form-control-sm" id="quickCreateSubcuentaDesc"
-                                   placeholder="${this.trans('description')}" style="max-width: 300px;">
-                        </div>
-                        <button type="button" class="btn btn-success btn-sm" id="quickCreateSubcuentaBtn">
-                            <i class="fas fa-save me-1"></i>${this.trans('save')}
-                        </button>
-                    </div>
-                </td>
-            `;
-
-            // Append to table
-            table.appendChild(createRow);
-
-            // Handle create button click
-            const self = this;
-            document.getElementById('quickCreateSubcuentaBtn').addEventListener('click', function () {
-                self.handleQuickSubcuentaCreate(suggestedCode, idcuenta);
-            });
-
-            // Handle Enter key in description field
-            document.getElementById('quickCreateSubcuentaDesc').addEventListener('keypress', function (e) {
-                if (e.key === 'Enter') {
+                if (e.key === 'ArrowDown') {
                     e.preventDefault();
-                    self.handleQuickSubcuentaCreate(suggestedCode, idcuenta);
+                    if (index < options.length - 1) {
+                        if (selected) selected.classList.remove('selected');
+                        options[index + 1].classList.add('selected');
+                        options[index + 1].scrollIntoView({ block: 'nearest' });
+                    }
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (index > 0) {
+                        if (selected) selected.classList.remove('selected');
+                        options[index - 1].classList.add('selected');
+                        options[index - 1].scrollIntoView({ block: 'nearest' });
+                    }
+                } else if (e.key === 'Enter' && selected) {
+                    e.preventDefault();
+                    selected.click();
+                } else if (e.key === 'Escape') {
+                    dropdown.classList.add('d-none');
                 }
             });
 
-            // Focus the description input
-            setTimeout(() => {
-                document.getElementById('quickCreateSubcuentaDesc').focus();
-            }, 100);
+            console.log('[QuickCreate] new_subaccount input enhanced with autocomplete');
         },
 
-        // Remove the create subcuenta row
-        removeCreateSubcuentaRow: function () {
-            const existingRow = document.getElementById('quickCreateSubcuentaRow');
-            if (existingRow) {
-                existingRow.remove();
-            }
-        },
-
-        // Handle quick subcuenta creation
-        handleQuickSubcuentaCreate: function (codsubcuenta, idcuenta) {
+        // Search subcuentas and show dropdown
+        searchSubcuentasForDropdown: function (query, dropdown, input) {
             const self = this;
-            const descInput = document.getElementById('quickCreateSubcuentaDesc');
-            const createBtn = document.getElementById('quickCreateSubcuentaBtn');
 
-            if (!descInput) return;
-
-            const descripcion = descInput.value.trim();
-            if (!descripcion) {
-                descInput.classList.add('is-invalid');
-                descInput.focus();
-                return;
-            }
-
-            descInput.classList.remove('is-invalid');
-            createBtn.disabled = true;
-            createBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>' + this.trans('saving');
-
-            const formData = new FormData();
-            formData.append('idcuenta', idcuenta);
-            formData.append('codsubcuenta', codsubcuenta);
-            formData.append('descripcion', descripcion);
-
-            fetch(this.getApiUrl() + '?action=create-subcuenta', {
-                method: 'POST',
-                body: formData
-            })
+            fetch(this.getApiUrl() + '?action=search-subcuenta&query=' + encodeURIComponent(query))
                 .then(response => response.json())
                 .then(data => {
-                    if (data.ok) {
-                        // Fill the target input field
-                        if (self.currentSubaccountLineInput) {
-                            // Use the FacturaScripts format with pipe separator
-                            self.currentSubaccountLineInput.value = data.data.codsubcuenta + ' | ' + data.data.descripcion;
-                            // Trigger change event
-                            const event = new Event('change', { bubbles: true });
-                            self.currentSubaccountLineInput.dispatchEvent(event);
-                        }
-
-                        // Close the modal
-                        const modal = document.getElementById('findSubaccountModal');
-                        const bsModal = bootstrap.Modal.getInstance(modal);
-                        if (bsModal) {
-                            bsModal.hide();
-                        }
-
-                        self.showNotification('success', data.message);
-
-                        // Reset the filter for next time
-                        const filterSelect = document.getElementById('quickCreateCuentaFilter');
-                        if (filterSelect) {
-                            filterSelect.value = '';
-                        }
-                        self.removeCreateSubcuentaRow();
-                    } else {
-                        self.showNotification('warning', data.message);
-                        createBtn.disabled = false;
-                        createBtn.innerHTML = '<i class="fas fa-save me-1"></i>' + self.trans('save');
+                    if (!data.ok) {
+                        dropdown.classList.add('d-none');
+                        return;
                     }
+
+                    let html = '';
+
+                    // Show matching subcuentas
+                    if (data.data && data.data.length > 0) {
+                        data.data.forEach((item, index) => {
+                            html += `<div class="subcuenta-option${index === 0 ? ' selected' : ''}" data-code="${self.escapeHtml(item.codsubcuenta)}" data-desc="${self.escapeHtml(item.descripcion)}">
+                                <strong>${self.escapeHtml(item.codsubcuenta)}</strong> - ${self.escapeHtml(item.descripcion)}
+                            </div>`;
+                        });
+                    } else {
+                        html += `<div class="subcuenta-option text-muted" style="pointer-events: none;">
+                            <em>${self.trans('no-results')}</em>
+                        </div>`;
+                    }
+
+                    // Add create option with suggested code
+                    if (data.suggestedCode) {
+                        html += `<div class="subcuenta-option subcuenta-create-option" data-action="create" data-suggested="${self.escapeHtml(data.suggestedCode)}">
+                            <i class="fas fa-plus me-1"></i>${self.trans('create-subaccount-code')}: <strong>${self.escapeHtml(data.suggestedCode)}</strong>
+                        </div>`;
+                    }
+
+                    dropdown.innerHTML = html;
+                    dropdown.classList.remove('d-none');
+
+                    // Attach click handlers
+                    dropdown.querySelectorAll('.subcuenta-option').forEach(option => {
+                        option.addEventListener('mousedown', function (e) {
+                            e.preventDefault(); // Prevent blur
+                            if (this.dataset.action === 'create') {
+                                // Open the create subcuenta modal
+                                self.currentSubcuentaField = input;
+                                self.openSubcuentaModal(query, this.dataset.suggested);
+                                dropdown.classList.add('d-none');
+                            } else if (this.dataset.code) {
+                                // Fill the input with selected subcuenta and trigger change
+                                input.value = this.dataset.code;
+                                // Trigger the onchange event that FacturaScripts expects
+                                if (typeof newLineAction === 'function') {
+                                    newLineAction(input.value);
+                                }
+                                dropdown.classList.add('d-none');
+                            }
+                        });
+
+                        // Hover effect
+                        option.addEventListener('mouseenter', function () {
+                            dropdown.querySelectorAll('.subcuenta-option').forEach(o => o.classList.remove('selected'));
+                            this.classList.add('selected');
+                        });
+                    });
                 })
                 .catch(error => {
-                    console.error('[QuickCreate] Error creating subcuenta:', error);
-                    self.showNotification('error', self.trans('connection-error'));
-                    createBtn.disabled = false;
-                    createBtn.innerHTML = '<i class="fas fa-save me-1"></i>' + self.trans('save');
+                    console.error('[QuickCreate] Error searching subcuentas:', error);
+                    dropdown.classList.add('d-none');
                 });
         },
 
