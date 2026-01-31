@@ -765,6 +765,7 @@
 
         loadCuentasForModal: function (prefixQuery) {
             const $select = $('#subcuentaCuentaPadre');
+            const self = this;
 
             // Extract prefix from dot notation (e.g., "629.6" -> "629")
             let searchPrefix = prefixQuery || '';
@@ -781,24 +782,30 @@
                 .then(data => {
                     if (!data.ok) return;
 
-                    let html = `<option value="">${this.trans('select-account')}</option>`;
+                    // Clear existing options
+                    $select.empty();
+
+                    // Add default option
+                    $select.append(new Option(self.trans('select-account'), '', true, false));
+
                     let matchingIdcuenta = null;
 
                     data.data.forEach(cuenta => {
-                        html += `<option value="${cuenta.idcuenta}">${this.escapeHtml(cuenta.codcuenta)} - ${this.escapeHtml(cuenta.descripcion)}</option>`;
+                        const optionText = `${cuenta.codcuenta} - ${cuenta.descripcion}`;
+                        $select.append(new Option(optionText, cuenta.idcuenta, false, false));
                         // Find exact match for target prefix
                         if (cuenta.codcuenta === targetPrefix) {
                             matchingIdcuenta = cuenta.idcuenta;
                         }
                     });
 
-                    $select.html(html);
-
                     // Auto-select exact match or single result
                     if (matchingIdcuenta) {
                         $select.val(matchingIdcuenta).trigger('change');
                     } else if (data.data.length === 1) {
                         $select.val(data.data[0].idcuenta).trigger('change');
+                    } else {
+                        $select.trigger('change');
                     }
                 })
                 .catch(error => {
