@@ -69,8 +69,7 @@
                 this.createAccountModal();
                 this.processAccountFields();
                 this.observeDynamicContent();
-                this.enhanceNewSubaccountInput();
-                // Poll for new_subaccount input changes (when lines are added/removed)
+                // Poll continuously for new_subaccount input changes
                 this.startSubaccountInputPolling();
             }
         },
@@ -226,6 +225,13 @@
                         }
                     });
                 }
+            });
+
+            // Intercept focus (keyboard navigation) to prevent changing input value while navigating
+            // This keeps the user's typed text in the input instead of replacing it with option values
+            autocomplete.option('focus', (event, _ui) => {
+                event.preventDefault();
+                return false;
             });
 
             // Intercept selection
@@ -750,25 +756,48 @@
                 // Reset Select2
                 $('#subcuentaCuentaPadre').val('').trigger('change');
             });
+
+            // Focus description field when modal is shown
+            modalEl.addEventListener('shown.bs.modal', () => {
+                document.getElementById('subcuentaDescripcion').focus();
+            });
         },
 
         loadCuentasForModal: function (prefixQuery) {
             const $select = $('#subcuentaCuentaPadre');
 
-            fetch(`${this.getApiUrl()}?action=search-cuentas&query=${encodeURIComponent(prefixQuery || '')}`)
+            // Extract prefix from dot notation (e.g., "629.6" -> "629")
+            let searchPrefix = prefixQuery || '';
+            let targetPrefix = '';
+            if (searchPrefix.indexOf('.') !== -1) {
+                targetPrefix = searchPrefix.split('.')[0];
+                searchPrefix = targetPrefix;
+            } else {
+                targetPrefix = searchPrefix;
+            }
+
+            fetch(`${this.getApiUrl()}?action=search-cuentas&query=${encodeURIComponent(searchPrefix)}`)
                 .then(response => response.json())
                 .then(data => {
                     if (!data.ok) return;
 
                     let html = `<option value="">${this.trans('select-account')}</option>`;
+                    let matchingIdcuenta = null;
+
                     data.data.forEach(cuenta => {
                         html += `<option value="${cuenta.idcuenta}">${this.escapeHtml(cuenta.codcuenta)} - ${this.escapeHtml(cuenta.descripcion)}</option>`;
+                        // Find exact match for target prefix
+                        if (cuenta.codcuenta === targetPrefix) {
+                            matchingIdcuenta = cuenta.idcuenta;
+                        }
                     });
 
                     $select.html(html);
 
-                    // Auto-select if only one result
-                    if (data.data.length === 1) {
+                    // Auto-select exact match or single result
+                    if (matchingIdcuenta) {
+                        $select.val(matchingIdcuenta).trigger('change');
+                    } else if (data.data.length === 1) {
                         $select.val(data.data[0].idcuenta).trigger('change');
                     }
                 })
@@ -1136,7 +1165,6 @@
         },
 
         observeDynamicContent: function () {
-            const self = this;
             const observer = new MutationObserver((mutations) => {
                 mutations.forEach((mutation) => {
                     mutation.addedNodes.forEach((node) => {
@@ -1156,7 +1184,7 @@
                             if (node.id === 'new_subaccount' || node.querySelector?.('#new_subaccount')) {
                                 const input = node.id === 'new_subaccount' ? node : node.querySelector('#new_subaccount');
                                 if (input && !input._quickCreateEnhanced) {
-                                    self.enhanceNewSubaccountInput();
+                                    this.enhanceNewSubaccountInput();
                                 }
                             }
                         }
@@ -1173,6 +1201,7 @@
         // Poll for new_subaccount input that needs enhancement
         startSubaccountInputPolling: function () {
             const self = this;
+            console.log('[QuickCreate] Starting subaccount input polling');
             setInterval(() => {
                 const input = document.getElementById('new_subaccount');
                 if (!input) return;
@@ -1186,10 +1215,74 @@
                     dropdown.parentElement !== input.parentElement;
 
                 if (needsEnhancement) {
-                    console.log('[QuickCreate] Found input needing enhancement, enhancing...');
-                    // Reset the flag to ensure full re-enhancement
-                    input._quickCreateEnhanced = false;
-                    self.enhanceNewSubaccountInput();
+                    // Enhance inline to avoid any scope issues
+                    input.removeAttribute('onchange');
+                    input._quickCreateEnhanced = true;
+                    input._validSubcuentaSelected = false;
+
+                    // Remove old dropdown if exists
+                    const oldDropdown = document.getElementById('quickCreateSubcuentaDropdown');
+                    if (oldDropdown) oldDropdown.remove();
+
+                    // Create new dropdown
+                    const newDropdown = document.createElement('div');
+                    newDropdown.id = 'quickCreateSubcuentaDropdown';
+                    newDropdown.className = 'subcuenta-dropdown d-none';
+                    input.parentElement.style.position = 'relative';
+                    input.parentElement.appendChild(newDropdown);
+
+                    // Add input listener with debounce
+                    let searchTimeout = null;
+                    input.addEventListener('input', function () {
+                        clearTimeout(searchTimeout);
+                        input._validSubcuentaSelected = false;
+                        const query = this.value.trim();
+
+                        if (query.length < 1) {
+                            newDropdown.classList.add('d-none');
+                            return;
+                        }
+
+                        searchTimeout = setTimeout(() => {
+                            self.searchSubcuentasForDropdown(query, newDropdown, input);
+                        }, 300);
+                    });
+
+                    // Handle blur
+                    input.addEventListener('blur', () => {
+                        setTimeout(() => newDropdown.classList.add('d-none'), 250);
+                    });
+
+                    // Handle keyboard navigation
+                    input.addEventListener('keydown', (e) => {
+                        if (newDropdown.classList.contains('d-none')) return;
+
+                        const options = newDropdown.querySelectorAll('.subcuenta-option');
+                        const selected = newDropdown.querySelector('.subcuenta-option.selected');
+                        const idx = Array.from(options).indexOf(selected);
+
+                        if (e.key === 'ArrowDown') {
+                            e.preventDefault();
+                            if (idx < options.length - 1) {
+                                if (selected) selected.classList.remove('selected');
+                                options[idx + 1].classList.add('selected');
+                                options[idx + 1].scrollIntoView({ block: 'nearest' });
+                            }
+                        } else if (e.key === 'ArrowUp') {
+                            e.preventDefault();
+                            if (idx > 0) {
+                                if (selected) selected.classList.remove('selected');
+                                options[idx - 1].classList.add('selected');
+                                options[idx - 1].scrollIntoView({ block: 'nearest' });
+                            }
+                        } else if (e.key === 'Enter' && selected) {
+                            e.preventDefault();
+                            // Call selectSubcuentaOption directly instead of dispatching event
+                            self.selectSubcuentaOption(selected, input, newDropdown);
+                        } else if (e.key === 'Escape') {
+                            newDropdown.classList.add('d-none');
+                        }
+                    });
                 }
             }, 300);
         },
@@ -1259,7 +1352,7 @@
 
             // Handle blur - hide dropdown and reset flag
             // Note: newLineAction is called by the click handler, not here
-            input.addEventListener('blur', function () {
+            input.addEventListener('blur', () => {
                 setTimeout(() => {
                     dropdown.classList.add('d-none');
                     // If user typed something but didn't select from dropdown, clear input
@@ -1296,7 +1389,8 @@
                     }
                 } else if (e.key === 'Enter' && selected) {
                     e.preventDefault();
-                    selected.click();
+                    // Call selectSubcuentaOption directly instead of click
+                    self.selectSubcuentaOption(selected, input, dropdown);
                 } else if (e.key === 'Escape') {
                     dropdown.classList.add('d-none');
                 }
@@ -1307,9 +1401,11 @@
 
         // Search subcuentas and show dropdown
         searchSubcuentasForDropdown: function (query, dropdown, input) {
-            const self = this;
 
-            fetch(`${this.getApiUrl()}?action=search-subcuenta&query=${encodeURIComponent(query)}`)
+            // Strip trailing dots from query (629. -> 629)
+            const cleanQuery = query.replace(/\.+$/, '');
+
+            fetch(`${this.getApiUrl()}?action=search-subcuenta&query=${encodeURIComponent(cleanQuery)}`)
                 .then(response => response.json())
                 .then(data => {
                     if (!data.ok) {
@@ -1322,20 +1418,20 @@
                     // Show matching subcuentas
                     if (data.data && data.data.length > 0) {
                         data.data.forEach((item, index) => {
-                            html += `<div class="subcuenta-option${index === 0 ? ' selected' : ''}" data-code="${self.escapeHtml(item.codsubcuenta)}" data-desc="${self.escapeHtml(item.descripcion)}">
-                                <strong>${self.escapeHtml(item.codsubcuenta)}</strong> - ${self.escapeHtml(item.descripcion)}
+                            html += `<div class="subcuenta-option${index === 0 ? ' selected' : ''}" data-code="${this.escapeHtml(item.codsubcuenta)}" data-desc="${this.escapeHtml(item.descripcion)}">
+                                <strong>${this.escapeHtml(item.codsubcuenta)}</strong> - ${this.escapeHtml(item.descripcion)}
                             </div>`;
                         });
                     } else {
                         html += `<div class="subcuenta-option text-muted" style="pointer-events: none;">
-                            <em>${self.trans('no-results')}</em>
+                            <em>${this.trans('no-results')}</em>
                         </div>`;
                     }
 
                     // Add create option with suggested code
                     if (data.suggestedCode) {
-                        html += `<div class="subcuenta-option subcuenta-create-option" data-action="create" data-suggested="${self.escapeHtml(data.suggestedCode)}">
-                            <i class="fas fa-plus me-1"></i>${self.trans('create-subaccount-code')}: <strong>${self.escapeHtml(data.suggestedCode)}</strong>
+                        html += `<div class="subcuenta-option subcuenta-create-option" data-action="create" data-suggested="${this.escapeHtml(data.suggestedCode)}">
+                            <i class="fas fa-plus me-1"></i>${this.trans('create-subaccount-code')}: <strong>${this.escapeHtml(data.suggestedCode)}</strong>
                         </div>`;
                     }
 
@@ -1344,29 +1440,15 @@
 
                     // Attach click handlers
                     dropdown.querySelectorAll('.subcuenta-option').forEach(option => {
-                        option.addEventListener('mousedown', function (e) {
+                        option.addEventListener('mousedown', (e) => {
                             e.preventDefault(); // Prevent blur
-                            if (this.dataset.action === 'create') {
-                                // Open the create subcuenta modal
-                                self.currentSubcuentaField = input;
-                                self.openSubcuentaModal(query, this.dataset.suggested);
-                                dropdown.classList.add('d-none');
-                            } else if (this.dataset.code) {
-                                // Fill the input with selected subcuenta
-                                input.value = this.dataset.code;
-                                input._validSubcuentaSelected = true; // Mark as valid selection
-                                // Trigger the onchange event that FacturaScripts expects
-                                if (typeof newLineAction === 'function') {
-                                    newLineAction(input.value);
-                                }
-                                dropdown.classList.add('d-none');
-                            }
+                            this.selectSubcuentaOption(e.currentTarget, input, dropdown, query);
                         });
 
                         // Hover effect
-                        option.addEventListener('mouseenter', function () {
+                        option.addEventListener('mouseenter', (e) => {
                             dropdown.querySelectorAll('.subcuenta-option').forEach(o => o.classList.remove('selected'));
-                            this.classList.add('selected');
+                            e.currentTarget.classList.add('selected');
                         });
                     });
                 })
@@ -1374,6 +1456,31 @@
                     console.error('[QuickCreate] Error searching subcuentas:', error);
                     dropdown.classList.add('d-none');
                 });
+        },
+
+        // Handle selection of a subcuenta option (called from click or Enter)
+        selectSubcuentaOption: function (option, input, dropdown, query) {
+            if (!option) return;
+
+            const action = option.dataset.action;
+            const code = option.dataset.code;
+            const suggested = option.dataset.suggested;
+
+            if (action === 'create') {
+                // Open the create subcuenta modal
+                this.currentSubcuentaField = input;
+                this.openSubcuentaModal(query || input.value.trim(), suggested);
+                dropdown.classList.add('d-none');
+            } else if (code) {
+                // Fill the input with selected subcuenta
+                input.value = code;
+                input._validSubcuentaSelected = true; // Mark as valid selection
+                // Trigger the onchange event that FacturaScripts expects
+                if (typeof newLineAction === 'function') {
+                    newLineAction(input.value);
+                }
+                dropdown.classList.add('d-none');
+            }
         },
 
         showNotification: (type, message) => {

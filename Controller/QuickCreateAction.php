@@ -454,9 +454,14 @@ class QuickCreateAction extends Controller
         }
 
         // Calculate suggested code if query looks like a parent code prefix
+        // Accept: "629" (2-4 digits) or "629.4" (digits.digits dot notation)
         $suggestedCode = '';
         if (preg_match('/^\d{2,4}$/', $query)) {
+            // Simple prefix like "629"
             $suggestedCode = $this->getNextFreeSubcuentaCode($query, $ejercicio->codejercicio);
+        } elseif (preg_match('/^\d{2,4}\.\d+$/', $query)) {
+            // Dot notation like "629.4" - transform and use as suggested code if parent exists
+            $suggestedCode = $this->getSuggestedCodeFromDotNotation($query, $ejercicio);
         }
 
         $this->response->setContent(json_encode([
@@ -482,6 +487,46 @@ class QuickCreateAction extends Controller
 
         $paddingLength = $longsubcuenta - strlen($parts[1]);
         return str_pad($parts[0], $paddingLength, '0', STR_PAD_RIGHT) . $parts[1];
+    }
+
+    /**
+     * Get suggested code from dot notation (e.g., "629.4" -> "6290000004")
+     * Returns the transformed code if the parent cuenta exists, empty string otherwise
+     */
+    protected function getSuggestedCodeFromDotNotation(string $query, Ejercicio $ejercicio): string
+    {
+        $parts = explode('.', $query);
+        if (count($parts) !== 2) {
+            return '';
+        }
+
+        $prefix = $parts[0];
+
+        // Check if parent cuenta exists
+        $cuenta = new Cuenta();
+        $where = [
+            new DataBaseWhere('codcuenta', $prefix),
+            new DataBaseWhere('codejercicio', $ejercicio->codejercicio),
+        ];
+        if (false === $cuenta->loadFromCode('', $where)) {
+            return '';
+        }
+
+        // Transform to full subcuenta code
+        $transformedCode = $this->transformCodsubcuenta($query, $ejercicio->longsubcuenta);
+
+        // Check if this subcuenta already exists
+        $subcuenta = new Subcuenta();
+        $whereSubcuenta = [
+            new DataBaseWhere('codsubcuenta', $transformedCode),
+            new DataBaseWhere('codejercicio', $ejercicio->codejercicio),
+        ];
+        if ($subcuenta->loadFromCode('', $whereSubcuenta)) {
+            // Already exists, don't suggest it
+            return '';
+        }
+
+        return $transformedCode;
     }
 
     protected function getNextFreeSubcuentaCode(string $prefix, string $codejercicio): string
