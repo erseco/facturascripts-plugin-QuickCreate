@@ -2,20 +2,20 @@
 <ruleset name="FacturaScripts Plugin">
     <description>Coding standard for FacturaScripts plugins based on PSR-12</description>
 
-    <!-- Files to check -->
+    <!-- Files to check (relative to plugin root) -->
     <file>Controller</file>
-    <file>Model</file>
     <file>Extension</file>
-    <file>Test</file>
+    <file>Trait</file>
+    <file>Test/main</file>
     <file>Init.php</file>
 
     <!-- Exclude patterns -->
-    <exclude-pattern>Assets/</exclude-pattern>
-    <exclude-pattern>vendor/</exclude-pattern>
-    <exclude-pattern>View/</exclude-pattern>
-    <exclude-pattern>XMLView/</exclude-pattern>
-    <exclude-pattern>Test/bootstrap.php</exclude-pattern>
-    <exclude-pattern>Test/install-plugins.php</exclude-pattern>
+    <exclude-pattern>*/Assets/*</exclude-pattern>
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/View/*</exclude-pattern>
+    <exclude-pattern>*/XMLView/*</exclude-pattern>
+    <exclude-pattern>*/facturascripts/*</exclude-pattern>
+    <exclude-pattern>*/dist/*</exclude-pattern>
 
     <!-- Include PSR-12 standard -->
     <rule ref="PSR12"/>
@@ -42,7 +42,4 @@
     <!-- Show progress and use colors -->
     <arg value="ps"/>
     <arg name="colors"/>
-
-    <!-- Parallel processing -->
-    <arg name="parallel" value="75"/>
 </ruleset>
