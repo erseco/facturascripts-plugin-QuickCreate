@@ -27,6 +27,7 @@
         pendingProductReference: null,
         findSubaccountModalEnhanced: false,
         currentSubaccountLineInput: null,
+        pendingSuggestedCode: null,
 
         init: function () {
             console.log('[QuickCreate] Initializing...');
@@ -664,10 +665,10 @@
                 this.createSubcuentaModal();
             }
 
-            // Load cuentas based on prefix
-            this.loadCuentasForModal(prefixQuery);
+            // Store suggested code to preserve it during parent account selection
+            this.pendingSuggestedCode = suggestedCode || null;
 
-            // Set suggested code if provided
+            // Set suggested code if provided (will be used by onCuentaPadreChange)
             const codeInput = document.getElementById('subcuentaCodigo');
             if (codeInput && suggestedCode) {
                 codeInput.value = suggestedCode;
@@ -680,6 +681,9 @@
             if (descInput) {
                 descInput.value = '';
             }
+
+            // Load cuentas based on prefix (this may trigger onCuentaPadreChange)
+            this.loadCuentasForModal(prefixQuery);
 
             this.subcuentaModal.show();
         },
@@ -821,6 +825,14 @@
                 return;
             }
 
+            // If we have a pending suggested code, use it and clear the flag
+            if (this.pendingSuggestedCode) {
+                codeInput.value = this.pendingSuggestedCode;
+                this.pendingSuggestedCode = null;
+                return;
+            }
+
+            // Otherwise fetch the next available code
             fetch(`${this.getApiUrl()}?action=get-next-subcuenta-code&idcuenta=${encodeURIComponent(idcuenta)}`)
                 .then(response => response.json())
                 .then(data => {
