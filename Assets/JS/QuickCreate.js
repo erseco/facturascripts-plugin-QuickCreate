@@ -1208,19 +1208,18 @@
                 }
             });
 
-            // Handle blur - only call newLineAction if a valid subcuenta was selected
+            // Handle blur - hide dropdown and reset flag
+            // Note: newLineAction is called by the click handler, not here
             input.addEventListener('blur', function () {
                 setTimeout(() => {
                     dropdown.classList.add('d-none');
-                    // Only trigger newLineAction if user selected a valid subcuenta
-                    if (input._validSubcuentaSelected && input.value.trim()) {
-                        if (typeof newLineAction === 'function') {
-                            newLineAction(input.value);
-                        }
-                        input._validSubcuentaSelected = false; // Reset for next time
+                    // If user typed something but didn't select from dropdown, clear input
+                    // This prevents confusion and "Subcuenta no encontrada" errors
+                    if (!input._validSubcuentaSelected && input.value.trim()) {
+                        // Don't clear - let user keep what they typed
+                        // They can use the book button if they want to search
                     }
-                    // If value exists but not valid selection, clear the input to avoid confusion
-                    // (user can re-type or use the book button to search)
+                    input._validSubcuentaSelected = false; // Reset for next time
                 }, 250);
             });
 
@@ -1304,8 +1303,9 @@
                                 self.openSubcuentaModal(query, this.dataset.suggested);
                                 dropdown.classList.add('d-none');
                             } else if (this.dataset.code) {
-                                // Fill the input with selected subcuenta and trigger change
+                                // Fill the input with selected subcuenta
                                 input.value = this.dataset.code;
+                                input._validSubcuentaSelected = true; // Mark as valid selection
                                 // Trigger the onchange event that FacturaScripts expects
                                 if (typeof newLineAction === 'function') {
                                     newLineAction(input.value);

@@ -437,6 +437,9 @@ class QuickCreateActionTest extends TestCase
         ];
     }
 
+    /**
+     * @dataProvider transformCodsubcuentaProvider
+     */
     #[DataProvider('transformCodsubcuentaProvider')]
     public function testTransformCodsubcuentaWithProvider(
         string $input,
