@@ -35,6 +35,7 @@ themes/
 
 # Test and cache files
 .phpunit.result.cache
+.phpunit.cache/
 .php-cs-fixer.cache
 
 # Environment files
@@ -43,3 +44,6 @@ themes/
 
 # Docker override files (user customizations or CI generated)
 docker-compose.override.yml
+
+# FacturaScripts core (reference only)
+facturascripts/

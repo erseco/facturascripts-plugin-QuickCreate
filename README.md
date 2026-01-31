@@ -1,6 +1,6 @@
 # QuickCreate Plugin for FacturaScripts
 
-A FacturaScripts plugin that adds "+" buttons next to autocomplete fields for creating products and accounting accounts without leaving the current form.
+A FacturaScripts plugin that adds "+" buttons next to autocomplete fields, allowing you to create products and accounting accounts without leaving the current form.
 
 ## Features
 
@@ -17,19 +17,12 @@ A FacturaScripts plugin that adds "+" buttons next to autocomplete fields for cr
 
 ## Installation
 
-1. Download the plugin ZIP file
+1. Download the latest `QuickCreate-X.X.X.zip` from [GitHub Releases](../../releases/latest)
 2. Go to **Admin Panel → Plugins** in FacturaScripts
-3. Click **Upload plugin** and select the ZIP file
+3. Click **Upload plugin** and select the downloaded ZIP file
 4. Enable the plugin
 
-Or clone this repository directly into your Plugins directory:
-
-```bash
-cd /path/to/facturascripts/Plugins
-git clone https://github.com/yourusername/QuickCreate.git
-```
-
-Then enable the plugin from the admin panel.
+> **Note**: Do not download the repository directly as a ZIP from GitHub's "Code" button. The release ZIP is specifically packaged for FacturaScripts and excludes development files.
 
 ## Usage
 
@@ -80,78 +73,29 @@ The plugin respects FacturaScripts permissions:
 
 Users without these permissions will not see the "+" buttons.
 
-## Development
-
-### Quick Start with Docker
-
-```bash
-# Start development environment
-make upd
-
-# Open http://localhost:8080
-# Login: admin / admin
-
-# Run tests
-make test
-
-# Stop environment
-make down
-```
-
-### Project Structure
-
-```
-QuickCreate/
-├── Assets/
-│   ├── CSS/
-│   │   └── QuickCreate.css
-│   └── JS/
-│       └── QuickCreate.js
-├── Controller/
-│   └── ApiQuickCreate.php
-├── Extension/
-│   └── Controller/
-│       ├── EditAlbaranCliente.php
-│       ├── EditAlbaranProveedor.php
-│       ├── EditAsiento.php
-│       ├── EditFacturaCliente.php
-│       ├── EditFacturaProveedor.php
-│       ├── EditPedidoCliente.php
-│       ├── EditPedidoProveedor.php
-│       ├── EditPresupuestoCliente.php
-│       └── EditPresupuestoProveedor.php
-├── Trait/
-│   └── QuickCreateTrait.php
-├── Translation/
-│   ├── en_EN.json
-│   └── es_ES.json
-├── Init.php
-├── facturascripts.ini
-└── README.md
-```
-
-## Technical Notes
-
-### Product Creation
-When saving a new Producto via `save()`, FacturaScripts automatically creates a default Variante. The plugin returns the variante reference for use in document lines.
-
-### Account Code Validation
-Each Ejercicio has a `longsubcuenta` property that defines the required length for subcuenta codes. The plugin validates this before creation.
-
-### Parent Account Requirement
-If the parent cuenta for a new subcuenta doesn't exist, an error message is shown asking the user to create it first. Parent accounts are NOT auto-created.
-
-### Dynamic Content Detection
-Document lines use JavaScript for dynamic rendering. A MutationObserver ensures "+" buttons appear on newly added lines.
-
 ## License
 
 This plugin is released under the GNU LGPLv3 license. See [LICENSE](LICENSE) for details.
 
-## Author
-
-Created by [Ernesto Serrano](https://github.com/erseco)
-
 ## Contributing
 
 Contributions are welcome! Please open an issue or submit a pull request.
+
+### Development Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/erseco/facturascripts-plugin-QuickCreate.git
+cd facturascripts-plugin-QuickCreate
+
+# Start development environment with Docker
+make up
+
+# Open http://localhost:8080 (login: admin / admin)
+
+# Run tests
+make test
+
+# Create a release package
+make package VERSION=1.0.0
+```

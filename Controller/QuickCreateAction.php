@@ -2,7 +2,7 @@
 
 /**
  * This file is part of QuickCreate plugin for FacturaScripts.
- * Copyright (C) 2025 Ernesto Serrano <info@ernesto.es>
+ * Copyright (C) 2026 Ernesto Serrano <info@ernesto.es>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -22,8 +22,8 @@ namespace FacturaScripts\Plugins\QuickCreate\Controller;
 
 use FacturaScripts\Core\Base\Controller;
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
-use FacturaScripts\Core\Tools;
 use FacturaScripts\Core\Lib\RegimenIVA;
+use FacturaScripts\Core\Tools;
 use FacturaScripts\Dinamic\Model\Cuenta;
 use FacturaScripts\Dinamic\Model\Ejercicio;
 use FacturaScripts\Dinamic\Model\Fabricante;
@@ -32,7 +32,6 @@ use FacturaScripts\Dinamic\Model\Impuesto;
 use FacturaScripts\Dinamic\Model\Producto;
 use FacturaScripts\Dinamic\Model\Subcuenta;
 use FacturaScripts\Dinamic\Model\Variante;
-use Symfony\Component\HttpFoundation\Response;
 
 class QuickCreateAction extends Controller
 {
@@ -70,8 +69,28 @@ class QuickCreateAction extends Controller
                 $this->getProductOptions();
                 break;
 
+            case 'search-subcuenta':
+                $this->searchSubcuenta();
+                break;
+
+            case 'get-exercise-info':
+                $this->getExerciseInfo();
+                break;
+
+            case 'search-cuentas':
+                $this->searchCuentas();
+                break;
+
+            case 'get-next-subcuenta-code':
+                $this->getNextSubcuentaCode();
+                break;
+
+            case 'create-subcuenta':
+                $this->createSubcuenta();
+                break;
+
             default:
-                $this->response->setStatusCode(Response::HTTP_BAD_REQUEST);
+                $this->response->setStatusCode(400);
                 $this->response->setContent(json_encode([
                     'ok' => false,
                     'message' => Tools::lang()->trans('invalid-action'),
@@ -83,7 +102,7 @@ class QuickCreateAction extends Controller
     {
         // Check permission
         if (false === $this->user->can('EditProducto')) {
-            $this->response->setStatusCode(Response::HTTP_FORBIDDEN);
+            $this->response->setStatusCode(403);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('permission-denied'),
@@ -98,10 +117,12 @@ class QuickCreateAction extends Controller
         $codfabricante = $this->request->get('codfabricante', '');
         $codimpuesto = $this->request->get('codimpuesto', '');
         $excepcioniva = $this->request->get('excepcioniva', '');
+        $codsubcuentacom = $this->request->get('codsubcuentacom', '');
+        $codsubcuentaven = $this->request->get('codsubcuentaven', '');
 
         // Validate required fields
         if (empty($referencia)) {
-            $this->response->setStatusCode(Response::HTTP_BAD_REQUEST);
+            $this->response->setStatusCode(400);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('reference-required'),
@@ -112,7 +133,7 @@ class QuickCreateAction extends Controller
         // Check if product already exists
         $variante = new Variante();
         if ($variante->loadFromCode('', [new DataBaseWhere('referencia', $referencia)])) {
-            $this->response->setStatusCode(Response::HTTP_BAD_REQUEST);
+            $this->response->setStatusCode(400);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('reference-already-exists'),
@@ -138,9 +159,15 @@ class QuickCreateAction extends Controller
         if (!empty($excepcioniva)) {
             $producto->excepcioniva = $excepcioniva;
         }
+        if (!empty($codsubcuentacom)) {
+            $producto->codsubcuentacom = $codsubcuentacom;
+        }
+        if (!empty($codsubcuentaven)) {
+            $producto->codsubcuentaven = $codsubcuentaven;
+        }
 
         if (false === $producto->save()) {
-            $this->response->setStatusCode(Response::HTTP_INTERNAL_SERVER_ERROR);
+            $this->response->setStatusCode(500);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('product-creation-error'),
@@ -168,7 +195,7 @@ class QuickCreateAction extends Controller
     {
         // Check permission
         if (false === $this->user->can('EditCuenta')) {
-            $this->response->setStatusCode(Response::HTTP_FORBIDDEN);
+            $this->response->setStatusCode(403);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('permission-denied'),
@@ -182,7 +209,7 @@ class QuickCreateAction extends Controller
 
         // Validate required fields
         if (empty($codsubcuenta) || empty($codejercicio)) {
-            $this->response->setStatusCode(Response::HTTP_BAD_REQUEST);
+            $this->response->setStatusCode(400);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('account-code-required'),
@@ -193,7 +220,7 @@ class QuickCreateAction extends Controller
         // Load ejercicio to get required code length
         $ejercicio = new Ejercicio();
         if (false === $ejercicio->loadFromCode($codejercicio)) {
-            $this->response->setStatusCode(Response::HTTP_BAD_REQUEST);
+            $this->response->setStatusCode(400);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('exercise-not-found'),
@@ -203,21 +230,26 @@ class QuickCreateAction extends Controller
 
         // Validate code length
         if (strlen($codsubcuenta) !== $ejercicio->longsubcuenta) {
-            $this->response->setStatusCode(Response::HTTP_BAD_REQUEST);
+            $this->response->setStatusCode(400);
             $this->response->setContent(json_encode([
                 'ok' => false,
-                'message' => Tools::lang()->trans('account-code-wrong-length', ['%length%' => $ejercicio->longsubcuenta]),
+                'message' => Tools::lang()->trans(
+                    'account-code-wrong-length',
+                    ['%length%' => $ejercicio->longsubcuenta]
+                ),
             ]));
             return;
         }
 
         // Check if subcuenta already exists
         $existingSubcuenta = new Subcuenta();
-        if ($existingSubcuenta->loadFromCode('', [
+        if (
+            $existingSubcuenta->loadFromCode('', [
             new DataBaseWhere('codsubcuenta', $codsubcuenta),
             new DataBaseWhere('codejercicio', $codejercicio),
-        ])) {
-            $this->response->setStatusCode(Response::HTTP_BAD_REQUEST);
+            ])
+        ) {
+            $this->response->setStatusCode(400);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('account-already-exists'),
@@ -232,10 +264,12 @@ class QuickCreateAction extends Controller
 
         // Try progressively shorter codes to find parent
         while (strlen($codcuenta) >= 1) {
-            if ($cuenta->loadFromCode('', [
+            if (
+                $cuenta->loadFromCode('', [
                 new DataBaseWhere('codcuenta', $codcuenta),
                 new DataBaseWhere('codejercicio', $codejercicio),
-            ])) {
+                ])
+            ) {
                 $parentFound = true;
                 break;
             }
@@ -243,7 +277,7 @@ class QuickCreateAction extends Controller
         }
 
         if (false === $parentFound) {
-            $this->response->setStatusCode(Response::HTTP_BAD_REQUEST);
+            $this->response->setStatusCode(400);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('parent-account-not-found'),
@@ -260,7 +294,7 @@ class QuickCreateAction extends Controller
         $subcuenta->idcuenta = $cuenta->idcuenta;
 
         if (false === $subcuenta->save()) {
-            $this->response->setStatusCode(Response::HTTP_INTERNAL_SERVER_ERROR);
+            $this->response->setStatusCode(500);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('account-creation-error'),
@@ -283,7 +317,7 @@ class QuickCreateAction extends Controller
     {
         // Check permission
         if (false === $this->user->can('EditProducto')) {
-            $this->response->setStatusCode(Response::HTTP_FORBIDDEN);
+            $this->response->setStatusCode(403);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('permission-denied'),
@@ -339,6 +373,361 @@ class QuickCreateAction extends Controller
                 'impuestos' => $impuestos,
                 'excepciones' => $excepciones,
                 'defaultTax' => $defaultTax,
+            ],
+        ]));
+    }
+
+    protected function searchSubcuenta(): void
+    {
+        // Check permission
+        if (false === $this->user->can('EditProducto')) {
+            $this->response->setStatusCode(403);
+            $this->response->setContent(json_encode([
+                'ok' => false,
+                'message' => Tools::lang()->trans('permission-denied'),
+            ]));
+            return;
+        }
+
+        $query = trim($this->request->get('query', ''));
+        if (empty($query)) {
+            $this->response->setContent(json_encode([
+                'ok' => true,
+                'data' => [],
+            ]));
+            return;
+        }
+
+        // Get current exercise
+        $ejercicio = new Ejercicio();
+        $ejercicio->loadFromCode('', [new DataBaseWhere('estado', 'ABIERTO')]);
+        if (empty($ejercicio->codejercicio)) {
+            $this->response->setContent(json_encode([
+                'ok' => true,
+                'data' => [],
+            ]));
+            return;
+        }
+
+        // Transform dot notation (e.g., "570.1" -> "5700000001")
+        $transformedQuery = $this->transformCodsubcuenta($query, $ejercicio->longsubcuenta);
+
+        // Search subcuentas
+        $subcuenta = new Subcuenta();
+        $where = [
+            new DataBaseWhere('codejercicio', $ejercicio->codejercicio),
+        ];
+
+        // Search by code or description
+        $whereCode = array_merge($where, [
+            new DataBaseWhere('codsubcuenta', $transformedQuery . '%', 'LIKE'),
+        ]);
+        $whereDesc = array_merge($where, [
+            new DataBaseWhere('descripcion', '%' . $query . '%', 'LIKE'),
+        ]);
+
+        $results = [];
+        $foundCodes = [];
+
+        // First search by code
+        foreach ($subcuenta->all($whereCode, ['codsubcuenta' => 'ASC'], 0, 15) as $sub) {
+            $results[] = [
+                'codsubcuenta' => $sub->codsubcuenta,
+                'descripcion' => $sub->descripcion,
+                'idsubcuenta' => $sub->idsubcuenta,
+            ];
+            $foundCodes[] = $sub->codsubcuenta;
+        }
+
+        // Then search by description if we have room
+        if (count($results) < 20) {
+            $remaining = 20 - count($results);
+            foreach ($subcuenta->all($whereDesc, ['descripcion' => 'ASC'], 0, $remaining) as $sub) {
+                if (!in_array($sub->codsubcuenta, $foundCodes)) {
+                    $results[] = [
+                        'codsubcuenta' => $sub->codsubcuenta,
+                        'descripcion' => $sub->descripcion,
+                        'idsubcuenta' => $sub->idsubcuenta,
+                    ];
+                }
+            }
+        }
+
+        // Calculate suggested code if query looks like a parent code prefix
+        $suggestedCode = '';
+        if (preg_match('/^\d{2,4}$/', $query)) {
+            $suggestedCode = $this->getNextFreeSubcuentaCode($query, $ejercicio->codejercicio);
+        }
+
+        $this->response->setContent(json_encode([
+            'ok' => true,
+            'data' => $results,
+            'suggestedCode' => $suggestedCode,
+            'codejercicio' => $ejercicio->codejercicio,
+            'longsubcuenta' => $ejercicio->longsubcuenta,
+        ]));
+    }
+
+    protected function transformCodsubcuenta(string $code, int $longsubcuenta): string
+    {
+        $code = trim($code);
+        if (strpos($code, '.') === false) {
+            return $code;
+        }
+
+        $parts = explode('.', $code);
+        if (count($parts) !== 2) {
+            return $code;
+        }
+
+        $paddingLength = $longsubcuenta - strlen($parts[1]);
+        return str_pad($parts[0], $paddingLength, '0', STR_PAD_RIGHT) . $parts[1];
+    }
+
+    protected function getNextFreeSubcuentaCode(string $prefix, string $codejercicio): string
+    {
+        $ejercicio = new Ejercicio();
+        if (false === $ejercicio->loadFromCode($codejercicio)) {
+            return '';
+        }
+
+        // Find parent cuenta
+        $cuenta = new Cuenta();
+        $where = [
+            new DataBaseWhere('codcuenta', $prefix),
+            new DataBaseWhere('codejercicio', $codejercicio),
+        ];
+        if (false === $cuenta->loadFromCode('', $where)) {
+            return '';
+        }
+
+        // Try numbers 1, 2, 3... until 999
+        $subcuenta = new Subcuenta();
+        for ($i = 1; $i <= 999; $i++) {
+            $suffix = (string) $i;
+            $paddedPrefix = str_pad($prefix, $ejercicio->longsubcuenta - strlen($suffix), '0', STR_PAD_RIGHT);
+            $newCode = $paddedPrefix . $suffix;
+
+            $where = [
+                new DataBaseWhere('codsubcuenta', $newCode),
+                new DataBaseWhere('codejercicio', $codejercicio),
+            ];
+            if (false === $subcuenta->loadFromCode('', $where)) {
+                return $newCode;
+            }
+        }
+
+        return '';
+    }
+
+    protected function getExerciseInfo(): void
+    {
+        // Check permission
+        if (false === $this->user->can('EditProducto')) {
+            $this->response->setStatusCode(403);
+            $this->response->setContent(json_encode([
+                'ok' => false,
+                'message' => Tools::lang()->trans('permission-denied'),
+            ]));
+            return;
+        }
+
+        // Get current open exercise
+        $ejercicio = new Ejercicio();
+        $ejercicio->loadFromCode('', [new DataBaseWhere('estado', 'ABIERTO')]);
+
+        if (empty($ejercicio->codejercicio)) {
+            $this->response->setStatusCode(404);
+            $this->response->setContent(json_encode([
+                'ok' => false,
+                'message' => Tools::lang()->trans('exercise-not-found'),
+            ]));
+            return;
+        }
+
+        $this->response->setContent(json_encode([
+            'ok' => true,
+            'data' => [
+                'codejercicio' => $ejercicio->codejercicio,
+                'longsubcuenta' => $ejercicio->longsubcuenta,
+                'nombre' => $ejercicio->nombre,
+            ],
+        ]));
+    }
+
+    protected function searchCuentas(): void
+    {
+        // Check permission
+        if (false === $this->user->can('EditCuenta')) {
+            $this->response->setStatusCode(403);
+            $this->response->setContent(json_encode([
+                'ok' => false,
+                'message' => Tools::lang()->trans('permission-denied'),
+            ]));
+            return;
+        }
+
+        $query = trim($this->request->get('query', ''));
+
+        // Get current exercise
+        $ejercicio = new Ejercicio();
+        $ejercicio->loadFromCode('', [new DataBaseWhere('estado', 'ABIERTO')]);
+        if (empty($ejercicio->codejercicio)) {
+            $this->response->setContent(json_encode([
+                'ok' => true,
+                'data' => [],
+            ]));
+            return;
+        }
+
+        // Search cuentas
+        $cuenta = new Cuenta();
+        $where = [
+            new DataBaseWhere('codejercicio', $ejercicio->codejercicio),
+        ];
+
+        if (!empty($query)) {
+            $where[] = new DataBaseWhere('codcuenta', $query . '%', 'LIKE', 'AND');
+            $where[] = new DataBaseWhere('descripcion', '%' . $query . '%', 'LIKE', 'OR');
+        }
+
+        $results = [];
+        foreach ($cuenta->all($where, ['codcuenta' => 'ASC'], 0, 50) as $c) {
+            $results[] = [
+                'idcuenta' => $c->idcuenta,
+                'codcuenta' => $c->codcuenta,
+                'descripcion' => $c->descripcion,
+            ];
+        }
+
+        $this->response->setContent(json_encode([
+            'ok' => true,
+            'data' => $results,
+            'codejercicio' => $ejercicio->codejercicio,
+        ]));
+    }
+
+    protected function getNextSubcuentaCode(): void
+    {
+        // Check permission
+        if (false === $this->user->can('EditCuenta')) {
+            $this->response->setStatusCode(403);
+            $this->response->setContent(json_encode([
+                'ok' => false,
+                'message' => Tools::lang()->trans('permission-denied'),
+            ]));
+            return;
+        }
+
+        $idcuenta = (int) $this->request->get('idcuenta', 0);
+        if ($idcuenta <= 0) {
+            $this->response->setStatusCode(400);
+            $this->response->setContent(json_encode([
+                'ok' => false,
+                'message' => Tools::lang()->trans('parent-account-not-found'),
+            ]));
+            return;
+        }
+
+        $cuenta = new Cuenta();
+        if (false === $cuenta->loadFromCode($idcuenta)) {
+            $this->response->setStatusCode(404);
+            $this->response->setContent(json_encode([
+                'ok' => false,
+                'message' => Tools::lang()->trans('parent-account-not-found'),
+            ]));
+            return;
+        }
+
+        $nextCode = $this->getNextFreeSubcuentaCode($cuenta->codcuenta, $cuenta->codejercicio);
+
+        $this->response->setContent(json_encode([
+            'ok' => true,
+            'data' => [
+                'codsubcuenta' => $nextCode,
+                'codcuenta' => $cuenta->codcuenta,
+                'descripcion' => $cuenta->descripcion,
+            ],
+        ]));
+    }
+
+    protected function createSubcuenta(): void
+    {
+        // Check permission
+        if (false === $this->user->can('EditCuenta')) {
+            $this->response->setStatusCode(403);
+            $this->response->setContent(json_encode([
+                'ok' => false,
+                'message' => Tools::lang()->trans('permission-denied'),
+            ]));
+            return;
+        }
+
+        $idcuenta = (int) $this->request->get('idcuenta', 0);
+        $codsubcuenta = trim($this->request->get('codsubcuenta', ''));
+        $descripcion = trim($this->request->get('descripcion', ''));
+
+        // Validate required fields
+        if ($idcuenta <= 0 || empty($codsubcuenta)) {
+            $this->response->setStatusCode(400);
+            $this->response->setContent(json_encode([
+                'ok' => false,
+                'message' => Tools::lang()->trans('account-code-required'),
+            ]));
+            return;
+        }
+
+        // Load parent cuenta
+        $cuenta = new Cuenta();
+        if (false === $cuenta->loadFromCode($idcuenta)) {
+            $this->response->setStatusCode(404);
+            $this->response->setContent(json_encode([
+                'ok' => false,
+                'message' => Tools::lang()->trans('parent-account-not-found'),
+            ]));
+            return;
+        }
+
+        // Check if subcuenta already exists
+        $existingSubcuenta = new Subcuenta();
+        if (
+            $existingSubcuenta->loadFromCode('', [
+            new DataBaseWhere('codsubcuenta', $codsubcuenta),
+            new DataBaseWhere('codejercicio', $cuenta->codejercicio),
+            ])
+        ) {
+            $this->response->setStatusCode(400);
+            $this->response->setContent(json_encode([
+                'ok' => false,
+                'message' => Tools::lang()->trans('account-already-exists'),
+            ]));
+            return;
+        }
+
+        // Create subcuenta
+        $subcuenta = new Subcuenta();
+        $subcuenta->codsubcuenta = $codsubcuenta;
+        $subcuenta->descripcion = $descripcion ?: $cuenta->descripcion;
+        $subcuenta->codcuenta = $cuenta->codcuenta;
+        $subcuenta->codejercicio = $cuenta->codejercicio;
+        $subcuenta->idcuenta = $cuenta->idcuenta;
+
+        if (false === $subcuenta->save()) {
+            $this->response->setStatusCode(500);
+            $this->response->setContent(json_encode([
+                'ok' => false,
+                'message' => Tools::lang()->trans('account-creation-error'),
+            ]));
+            return;
+        }
+
+        $this->response->setContent(json_encode([
+            'ok' => true,
+            'message' => Tools::lang()->trans('account-created'),
+            'data' => [
+                'codsubcuenta' => $subcuenta->codsubcuenta,
+                'idsubcuenta' => $subcuenta->idsubcuenta,
+                'descripcion' => $subcuenta->descripcion,
             ],
         ]));
     }

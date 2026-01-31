@@ -1,7 +1,9 @@
 <?php
 
 /**
- * This file is part of PluginTemplate plugin for FacturaScripts.
+ * This file is part of QuickCreate plugin for FacturaScripts.
+ * Copyright (C) 2026 Ernesto Serrano <info@ernesto.es>
+ *
  * Script to install plugins for testing
  */
 
