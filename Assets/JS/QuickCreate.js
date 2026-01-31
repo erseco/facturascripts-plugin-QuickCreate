@@ -8,7 +8,7 @@
  * License, or (at your option) any later version.
  */
 
-(function () {
+(() => {
     'use strict';
 
     console.log('[QuickCreate] Script loaded');
@@ -106,7 +106,6 @@
 
         // Wait for autocomplete to be initialized, then enhance it
         waitForAutocomplete: function () {
-            const self = this;
 
             // Attach modal listener if modal exists
             this.attachModalListener();
@@ -117,9 +116,9 @@
                     for (const node of mutation.addedNodes) {
                         if (node.nodeType === Node.ELEMENT_NODE) {
                             if (node.id === 'findProductModal' ||
-                                (node.querySelector && node.querySelector('#findProductModal'))) {
+                                (node.querySelector?.('#findProductModal'))) {
                                 console.log('[QuickCreate] findProductModal added to DOM');
-                                self.attachModalListener();
+                                this.attachModalListener();
                             }
                         }
                     }
@@ -139,7 +138,7 @@
                     const autocomplete = input.autocomplete('instance');
                     if (autocomplete && !autocomplete._quickCreateEnhanced) {
                         console.log('[QuickCreate] Autocomplete needs enhancement, applying...');
-                        self.enhanceProductAutocomplete();
+                        this.enhanceProductAutocomplete();
                     }
                 }
             }, 500);
@@ -147,7 +146,6 @@
 
         // Attach listener to findProductModal for shown event
         attachModalListener: function () {
-            const self = this;
             const findProductModal = document.getElementById('findProductModal');
 
             if (!findProductModal) {
@@ -160,7 +158,7 @@
             }
             findProductModal._quickCreateListenerAttached = true;
 
-            findProductModal.addEventListener('shown.bs.modal', function () {
+            findProductModal.addEventListener('shown.bs.modal', () => {
                 console.log('[QuickCreate] findProductModal shown, waiting for autocomplete...');
                 // Poll until autocomplete is ready (max 2 seconds)
                 let modalAttempts = 0;
@@ -168,7 +166,7 @@
                     const input = $('#findProductInput');
                     if (input.length && input.data('ui-autocomplete')) {
                         clearInterval(modalCheckInterval);
-                        self.enhanceProductAutocomplete();
+                        this.enhanceProductAutocomplete();
                     }
                     modalAttempts++;
                     if (modalAttempts >= 20) {
@@ -203,11 +201,11 @@
             const originalSource = autocomplete.options.source;
 
             // Intercept the data source
-            autocomplete.option('source', function (request, response) {
+            autocomplete.option('source', (request, response) => {
                 const searchTerm = request.term || '';
                 // Handle both function and URL source types
                 if (typeof originalSource === 'function') {
-                    originalSource(request, function (results) {
+                    originalSource(request, (results) => {
                         results = self.addCreateProductOption(results, searchTerm);
                         response(results);
                     });
@@ -217,11 +215,11 @@
                         url: originalSource,
                         data: request,
                         dataType: 'json',
-                        success: function (data) {
+                        success: (data) => {
                             data = self.addCreateProductOption(data, searchTerm);
                             response(data);
                         },
-                        error: function () {
+                        error: () => {
                             response([]);
                         }
                     });
@@ -254,9 +252,9 @@
         addCreateProductOption: function (results, searchTerm) {
             // Always add the quick create option at the end
             // Show the search term so user knows what reference will be used
-            let label = '+ ' + this.trans('quick-create-product');
-            if (searchTerm && searchTerm.trim()) {
-                label += ': ' + searchTerm.trim();
+            let label = `+ ${this.trans('quick-create-product')}`;
+            if (searchTerm?.trim()) {
+                label += `: ${searchTerm.trim()}`;
             }
             results.push({
                 key: '__quick_create__',
@@ -296,7 +294,7 @@
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'btn btn-success quick-create-product-btn ms-auto me-2';
-            button.innerHTML = '<i class="fas fa-plus me-1"></i>' + this.trans('quick-create-product');
+            button.innerHTML = `<i class="fas fa-plus me-1"></i>${this.trans('quick-create-product')}`;
             button.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -304,7 +302,7 @@
                 // Store the search text to pre-fill the reference field
                 // Try both possible input IDs (productModalInput for the modal table search, findProductInput for autocomplete)
                 const searchInput = document.getElementById('productModalInput') || document.getElementById('findProductInput');
-                if (searchInput && searchInput.value.trim()) {
+                if (searchInput?.value.trim()) {
                     this.pendingProductReference = searchInput.value.trim();
                 }
                 // Hide findProductModal and show our creation modal
@@ -337,7 +335,7 @@
                     for (const node of mutation.addedNodes) {
                         if (node.nodeType === Node.ELEMENT_NODE) {
                             if (node.id === 'findProductModal' ||
-                                (node.querySelector && node.querySelector('#findProductModal'))) {
+                                (node.querySelector?.('#findProductModal'))) {
                                 console.log('[QuickCreate] Modal detected via MutationObserver');
                                 this.injectProductButton();
                                 return;
@@ -425,7 +423,7 @@
                     return;
                 }
 
-                fetch(window.location.pathname.replace(/\/[^/]*$/, '/QuickCreateAction') + '?action=get-product-options')
+                fetch(`${window.location.pathname.replace(/\/[^/]*$/, '/QuickCreateAction')}?action=get-product-options`)
                     .then(response => response.json())
                     .then(data => {
                         if (data.ok) {
@@ -524,7 +522,7 @@
         initSubcuentaAutocomplete: function (inputId) {
             const self = this;
             const input = document.getElementById(inputId);
-            const dropdown = document.getElementById(inputId + 'Dropdown');
+            const dropdown = document.getElementById(`${inputId}Dropdown`);
             const createBtn = document.querySelector(`[data-target="${inputId}"]`);
 
             if (!input || !dropdown) return;
@@ -557,7 +555,7 @@
             });
 
             // Focus shows dropdown if there are results
-            input.addEventListener('focus', function () {
+            input.addEventListener('focus', () => {
                 if (dropdown.children.length > 0) {
                     dropdown.classList.remove('d-none');
                 }
@@ -565,7 +563,7 @@
 
             // Create button click
             if (createBtn) {
-                createBtn.addEventListener('click', function (e) {
+                createBtn.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     self.currentSubcuentaField = input;
@@ -588,7 +586,7 @@
         searchSubcuenta: function (query, dropdown, input) {
             const self = this;
 
-            fetch(this.getApiUrl() + '?action=search-subcuenta&query=' + encodeURIComponent(query))
+            fetch(`${this.getApiUrl()}?action=search-subcuenta&query=${encodeURIComponent(query)}`)
                 .then(response => response.json())
                 .then(data => {
                     if (!data.ok) {
@@ -652,7 +650,6 @@
         },
 
         openSubcuentaModal: function (prefixQuery, suggestedCode) {
-            const self = this;
 
             // Create modal if it doesn't exist
             if (!this.subcuentaModal) {
@@ -740,12 +737,12 @@
             });
 
             // Handle save button
-            document.getElementById('subcuentaGuardar').addEventListener('click', function () {
+            document.getElementById('subcuentaGuardar').addEventListener('click', () => {
                 self.submitSubcuentaForm();
             });
 
             // Reset form on modal close
-            modalEl.addEventListener('hidden.bs.modal', function () {
+            modalEl.addEventListener('hidden.bs.modal', () => {
                 document.getElementById('quickCreateSubcuentaForm').reset();
                 document.getElementById('quickCreateSubcuentaError').classList.add('d-none');
                 // Reset Select2
@@ -754,17 +751,16 @@
         },
 
         loadCuentasForModal: function (prefixQuery) {
-            const self = this;
             const $select = $('#subcuentaCuentaPadre');
 
-            fetch(this.getApiUrl() + '?action=search-cuentas&query=' + encodeURIComponent(prefixQuery || ''))
+            fetch(`${this.getApiUrl()}?action=search-cuentas&query=${encodeURIComponent(prefixQuery || '')}`)
                 .then(response => response.json())
                 .then(data => {
                     if (!data.ok) return;
 
-                    let html = `<option value="">${self.trans('select-account')}</option>`;
+                    let html = `<option value="">${this.trans('select-account')}</option>`;
                     data.data.forEach(cuenta => {
-                        html += `<option value="${cuenta.idcuenta}">${self.escapeHtml(cuenta.codcuenta)} - ${self.escapeHtml(cuenta.descripcion)}</option>`;
+                        html += `<option value="${cuenta.idcuenta}">${this.escapeHtml(cuenta.codcuenta)} - ${this.escapeHtml(cuenta.descripcion)}</option>`;
                     });
 
                     $select.html(html);
@@ -780,7 +776,6 @@
         },
 
         onCuentaPadreChange: function (idcuenta) {
-            const self = this;
             const codeInput = document.getElementById('subcuentaCodigo');
 
             if (!idcuenta) {
@@ -788,7 +783,7 @@
                 return;
             }
 
-            fetch(this.getApiUrl() + '?action=get-next-subcuenta-code&idcuenta=' + encodeURIComponent(idcuenta))
+            fetch(`${this.getApiUrl()}?action=get-next-subcuenta-code&idcuenta=${encodeURIComponent(idcuenta)}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.ok && data.data.codsubcuenta) {
@@ -801,8 +796,7 @@
         },
 
         submitSubcuentaForm: function () {
-            const self = this;
-            const form = document.getElementById('quickCreateSubcuentaForm');
+            const _form = document.getElementById('quickCreateSubcuentaForm');
             const errorDiv = document.getElementById('quickCreateSubcuentaError');
             const submitBtn = document.getElementById('subcuentaGuardar');
 
@@ -819,14 +813,14 @@
 
             errorDiv.classList.add('d-none');
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>' + this.trans('saving');
+            submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin me-1"></i>${this.trans('saving')}`;
 
             const formData = new FormData();
             formData.append('idcuenta', idcuenta);
             formData.append('codsubcuenta', codsubcuenta);
             formData.append('descripcion', descripcion);
 
-            fetch(this.getApiUrl() + '?action=create-subcuenta', {
+            fetch(`${this.getApiUrl()}?action=create-subcuenta`, {
                 method: 'POST',
                 body: formData
             })
@@ -834,11 +828,11 @@
                 .then(data => {
                     if (data.ok) {
                         // Fill the target field with the new code
-                        if (self.currentSubcuentaField) {
-                            self.currentSubcuentaField.value = data.data.codsubcuenta;
+                        if (this.currentSubcuentaField) {
+                            this.currentSubcuentaField.value = data.data.codsubcuenta;
                         }
-                        self.subcuentaModal.hide();
-                        self.showNotification('success', data.message);
+                        this.subcuentaModal.hide();
+                        this.showNotification('success', data.message);
                     } else {
                         errorDiv.textContent = data.message;
                         errorDiv.classList.remove('d-none');
@@ -846,20 +840,18 @@
                 })
                 .catch(error => {
                     console.error('[QuickCreate] Error:', error);
-                    errorDiv.textContent = self.trans('connection-error');
+                    errorDiv.textContent = this.trans('connection-error');
                     errorDiv.classList.remove('d-none');
                 })
                 .finally(() => {
                     submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<i class="fas fa-save me-1"></i>' + self.trans('save');
+                    submitBtn.innerHTML = `<i class="fas fa-save me-1"></i>${this.trans('save')}`;
                 });
         },
 
-        getApiUrl: function () {
-            return window.location.pathname.replace(/\/[^/]*$/, '/QuickCreateAction');
-        },
+        getApiUrl: () => window.location.pathname.replace(/\/[^/]*$/, '/QuickCreateAction'),
 
-        escapeHtml: function (text) {
+        escapeHtml: (text) => {
             if (!text) return '';
             const div = document.createElement('div');
             div.textContent = text;
@@ -1045,9 +1037,9 @@
 
             // Disable button
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>' + this.trans('saving');
+            submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin me-1"></i>${this.trans('saving')}`;
 
-            fetch(window.location.pathname.replace(/\/[^/]*$/, '/QuickCreateAction') + '?action=create-product', {
+            fetch(`${window.location.pathname.replace(/\/[^/]*$/, '/QuickCreateAction')}?action=create-product`, {
                 method: 'POST',
                 body: formData
             })
@@ -1075,7 +1067,7 @@
                 })
                 .finally(() => {
                     submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<i class="fas fa-save me-1"></i>' + this.trans('save');
+                    submitBtn.innerHTML = `<i class="fas fa-save me-1"></i>${this.trans('save')}`;
                 });
         },
 
@@ -1093,9 +1085,9 @@
 
             // Disable button
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>' + this.trans('saving');
+            submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin me-1"></i>${this.trans('saving')}`;
 
-            fetch(window.location.pathname.replace(/\/[^/]*$/, '/QuickCreateAction') + '?action=create-account', {
+            fetch(`${window.location.pathname.replace(/\/[^/]*$/, '/QuickCreateAction')}?action=create-account`, {
                 method: 'POST',
                 body: formData
             })
@@ -1117,15 +1109,15 @@
                 })
                 .finally(() => {
                     submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<i class="fas fa-save me-1"></i>' + this.trans('save');
+                    submitBtn.innerHTML = `<i class="fas fa-save me-1"></i>${this.trans('save')}`;
                 });
         },
 
-        updateAutocompleteField: function (input, value, description) {
+        updateAutocompleteField: (input, value, description) => {
             if (!input) return;
 
             // Set value in autocomplete format: "value | description"
-            input.value = value + ' | ' + (description || '');
+            input.value = `${value} | ${description || ''}`;
 
             // Trigger change event for any listeners
             const event = new Event('change', { bubbles: true });
@@ -1148,7 +1140,7 @@
                             });
 
                             // Also check if the node itself is a wrapper
-                            if (node.classList && node.classList.contains('widget-autocomplete')) {
+                            if (node.classList?.contains('widget-autocomplete')) {
                                 this.processAccountField(node);
                             }
                         }
@@ -1172,6 +1164,11 @@
                 return;
             }
 
+            // Remove the original onchange handler to prevent "Subcuenta no encontrada" message
+            // We will call newLineAction only when a valid subcuenta is selected
+            input.removeAttribute('onchange');
+            input._validSubcuentaSelected = false;
+
             // Create dropdown container
             const dropdownId = 'quickCreateSubcuentaDropdown';
             let dropdown = document.getElementById(dropdownId);
@@ -1190,6 +1187,7 @@
             let searchTimeout = null;
             input.addEventListener('input', function () {
                 clearTimeout(searchTimeout);
+                input._validSubcuentaSelected = false; // Reset flag when user types
                 const query = this.value.trim();
 
                 if (query.length < 1) {
@@ -1210,20 +1208,29 @@
                 }
             });
 
-            // Handle blur (hide dropdown after short delay to allow clicks)
+            // Handle blur - only call newLineAction if a valid subcuenta was selected
             input.addEventListener('blur', function () {
                 setTimeout(() => {
                     dropdown.classList.add('d-none');
-                }, 200);
+                    // Only trigger newLineAction if user selected a valid subcuenta
+                    if (input._validSubcuentaSelected && input.value.trim()) {
+                        if (typeof newLineAction === 'function') {
+                            newLineAction(input.value);
+                        }
+                        input._validSubcuentaSelected = false; // Reset for next time
+                    }
+                    // If value exists but not valid selection, clear the input to avoid confusion
+                    // (user can re-type or use the book button to search)
+                }, 250);
             });
 
             // Handle keyboard navigation
-            input.addEventListener('keydown', function (e) {
+            input.addEventListener('keydown', (e) => {
                 if (dropdown.classList.contains('d-none')) return;
 
                 const options = dropdown.querySelectorAll('.subcuenta-option');
                 const selected = dropdown.querySelector('.subcuenta-option.selected');
-                let index = Array.from(options).indexOf(selected);
+                const index = Array.from(options).indexOf(selected);
 
                 if (e.key === 'ArrowDown') {
                     e.preventDefault();
@@ -1254,7 +1261,7 @@
         searchSubcuentasForDropdown: function (query, dropdown, input) {
             const self = this;
 
-            fetch(this.getApiUrl() + '?action=search-subcuenta&query=' + encodeURIComponent(query))
+            fetch(`${this.getApiUrl()}?action=search-subcuenta&query=${encodeURIComponent(query)}`)
                 .then(response => response.json())
                 .then(data => {
                     if (!data.ok) {
@@ -1320,7 +1327,7 @@
                 });
         },
 
-        showNotification: function (type, message) {
+        showNotification: (type, message) => {
             // Use FacturaScripts toast if available
             if (typeof showMessages === 'function') {
                 showMessages([{ type: type, message: message }]);
@@ -1329,7 +1336,7 @@
             }
         },
 
-        trans: function (key) {
+        trans: (key) => {
             // Use FacturaScripts i18n if available
             if (window.i18n && typeof window.i18n.trans === 'function') {
                 return window.i18n.trans(key);
@@ -1370,7 +1377,7 @@
             return fallback[key] || key;
         },
 
-        injectStyles: function () {
+        injectStyles: () => {
             if (document.getElementById('quickCreateStyles')) return;
 
             const styles = `

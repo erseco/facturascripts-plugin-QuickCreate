@@ -1,6 +1,6 @@
 # Makefile to facilitate the use of Docker for FacturaScripts plugin development
 
-.PHONY: help up upd down pull build shell clean package enable-plugin rebuild lint lint-js format test logs ps fresh check-docker
+.PHONY: help up upd down pull build shell clean package enable-plugin rebuild lint lint-js format format-js test logs ps fresh check-docker
 
 # Define SED_INPLACE based on the operating system
 ifeq ($(shell uname), Darwin)
@@ -123,6 +123,28 @@ lint-js: check-docker upd
 	@echo ""
 	@echo "✅ JavaScript lint completed!"
 
+# Run Biome to automatically fix JavaScript code style
+format-js: check-docker upd
+	@echo "Running Biome JavaScript formatter..."
+	@echo ""
+	@docker compose exec facturascripts sh -c '\
+		cd /var/www/html/Plugins/QuickCreate && \
+		if [ ! -f /tmp/biome ]; then \
+			echo "→ Downloading Biome..." && \
+			ARCH=$$(uname -m) && \
+			LIBC=$$(ldd /bin/sh 2>/dev/null | grep -q musl && echo "-musl" || echo "") && \
+			if [ "$$ARCH" = "aarch64" ] || [ "$$ARCH" = "arm64" ]; then \
+				BIOME_ARCH="biome-linux-arm64$$LIBC"; \
+			else \
+				BIOME_ARCH="biome-linux-x64$$LIBC"; \
+			fi && \
+			curl -fsSL -o /tmp/biome https://github.com/biomejs/biome/releases/latest/download/$$BIOME_ARCH && \
+			chmod +x /tmp/biome; \
+		fi && \
+		/tmp/biome lint Assets/JS/ --write --unsafe --colors=force'
+	@echo ""
+	@echo "✅ JavaScript formatting completed!"
+
 # Run PHP CS Fixer to automatically fix code style
 format: check-docker upd
 	@echo "Running PHP CS Fixer..."
@@ -179,6 +201,7 @@ help:
 	@echo "  lint              - Run PHP CodeSniffer to check code style"
 	@echo "  lint-js           - Run Biome to check JavaScript code style"
 	@echo "  format            - Run PHP CS Fixer to automatically fix code style"
+	@echo "  format-js         - Run Biome to automatically fix JavaScript code style"
 	@echo ""
 	@echo "Testing:"
 	@echo "  test              - Run unit tests inside container"
