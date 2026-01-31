@@ -46,19 +46,30 @@ jobs:
       - name: Copy plugin files to container
         run: |
           echo "📦 Copying plugin files to container..."
-          docker compose exec -T facturascripts mkdir -p /var/www/html/Plugins/PluginTemplate
-          docker cp . facturascripts-plugin-template-facturascripts-1:/var/www/html/Plugins/PluginTemplate/
+          docker compose exec -T facturascripts mkdir -p /var/www/html/Plugins/QuickCreate
+          docker cp . facturascripts-plugin-quickcreate-facturascripts-1:/var/www/html/Plugins/QuickCreate/
 
           echo "📋 Fixing permissions..."
-          docker compose exec -T facturascripts chown -R nobody:nobody /var/www/html/Plugins/PluginTemplate || true
+          docker compose exec -T facturascripts chown -R nobody:nobody /var/www/html/Plugins/QuickCreate || true
 
           echo "✅ Plugin files copied successfully"
 
-      - name: Run code style check
+      - name: Run PHP code style check
         run: make lint
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run JavaScript code style check
+        run: make lint-js
 
       - name: Run tests
         run: make test
+
+      - name: Run JavaScript tests
+        run: make test-js
 
       - name: Show logs on failure
         if: failure()
@@ -114,8 +125,8 @@ jobs:
 
       - name: Install plugin
         run: |
-          mkdir -p facturascripts/Plugins/PluginTemplate
-          cp -r plugin/* facturascripts/Plugins/PluginTemplate/
+          mkdir -p facturascripts/Plugins/QuickCreate
+          cp -r plugin/* facturascripts/Plugins/QuickCreate/
 
       - name: Setup FacturaScripts
         working-directory: facturascripts

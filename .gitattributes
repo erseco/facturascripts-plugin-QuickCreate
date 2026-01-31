@@ -12,9 +12,13 @@
 /tests/                 export-ignore
 
 # Documentation and examples
+/CLAUDE.md              export-ignore
 /examples/              export-ignore
 /QUICKSTART.md          export-ignore
 /README.md              export-ignore
+
+# Reference repository (cloned for development)
+/facturascripts/        export-ignore
 
 # Build and dependencies
 /vendor/                export-ignore
