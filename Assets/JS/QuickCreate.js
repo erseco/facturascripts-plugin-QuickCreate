@@ -570,6 +570,45 @@
                 }
             });
 
+            // Keyboard navigation
+            input.addEventListener('keydown', (e) => {
+                if (dropdown.classList.contains('d-none')) return;
+
+                const options = dropdown.querySelectorAll('.subcuenta-option');
+                const selected = dropdown.querySelector('.subcuenta-option.selected');
+                const index = Array.from(options).indexOf(selected);
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (index < options.length - 1) {
+                        if (selected) selected.classList.remove('selected');
+                        options[index + 1].classList.add('selected');
+                        options[index + 1].scrollIntoView({ block: 'nearest' });
+                    } else if (index === -1 && options.length > 0) {
+                        options[0].classList.add('selected');
+                    }
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (index > 0) {
+                        if (selected) selected.classList.remove('selected');
+                        options[index - 1].classList.add('selected');
+                        options[index - 1].scrollIntoView({ block: 'nearest' });
+                    }
+                } else if ((e.key === 'Enter' || e.key === 'Tab') && selected) {
+                    e.preventDefault();
+                    if (selected.dataset.action === 'create') {
+                        self.currentSubcuentaField = input;
+                        self.openSubcuentaModal(input.value.trim(), selected.dataset.suggested);
+                        dropdown.classList.add('d-none');
+                    } else if (selected.dataset.code) {
+                        input.value = selected.dataset.code;
+                        dropdown.classList.add('d-none');
+                    }
+                } else if (e.key === 'Escape') {
+                    dropdown.classList.add('d-none');
+                }
+            });
+
             // Create button click
             if (createBtn) {
                 createBtn.addEventListener('click', (e) => {
@@ -612,24 +651,29 @@
                     }
 
                     let html = '';
+                    let firstSelectable = true;
 
                     if (data.data.length === 0) {
-                        html += `<div class="subcuenta-option text-muted">${self.trans('no-results')}</div>`;
+                        html += `<div class="subcuenta-option text-muted" style="pointer-events: none;">${self.trans('no-results')}</div>`;
+                        firstSelectable = false;
                     } else {
-                        data.data.forEach(item => {
-                            html += `<div class="subcuenta-option" data-code="${self.escapeHtml(item.codsubcuenta)}">
+                        data.data.forEach((item, index) => {
+                            const selectedClass = index === 0 ? ' selected' : '';
+                            html += `<div class="subcuenta-option${selectedClass}" data-code="${self.escapeHtml(item.codsubcuenta)}">
                                 <strong>${self.escapeHtml(item.codsubcuenta)}</strong> - ${self.escapeHtml(item.descripcion)}
                             </div>`;
                         });
+                        firstSelectable = false; // Already selected the first one
                     }
 
                     // Add create option with suggested code
+                    const createSelectedClass = firstSelectable ? ' selected' : '';
                     if (data.suggestedCode) {
-                        html += `<div class="subcuenta-option subcuenta-create-option" data-action="create" data-suggested="${self.escapeHtml(data.suggestedCode)}">
+                        html += `<div class="subcuenta-option subcuenta-create-option${createSelectedClass}" data-action="create" data-suggested="${self.escapeHtml(data.suggestedCode)}">
                             <i class="fas fa-plus me-1"></i>${self.trans('create-subcuenta')} <strong>${self.escapeHtml(data.suggestedCode)}</strong>
                         </div>`;
                     } else {
-                        html += `<div class="subcuenta-option subcuenta-create-option" data-action="create">
+                        html += `<div class="subcuenta-option subcuenta-create-option${createSelectedClass}" data-action="create">
                             <i class="fas fa-plus me-1"></i>${self.trans('create-subcuenta')}
                         </div>`;
                     }
@@ -637,7 +681,7 @@
                     dropdown.innerHTML = html;
                     dropdown.classList.remove('d-none');
 
-                    // Attach click handlers
+                    // Attach click and hover handlers
                     dropdown.querySelectorAll('.subcuenta-option').forEach(option => {
                         option.addEventListener('mousedown', function (e) {
                             e.preventDefault(); // Prevent blur
@@ -649,6 +693,12 @@
                                 input.value = this.dataset.code;
                                 dropdown.classList.add('d-none');
                             }
+                        });
+
+                        // Hover effect
+                        option.addEventListener('mouseenter', function () {
+                            dropdown.querySelectorAll('.subcuenta-option').forEach(o => o.classList.remove('selected'));
+                            this.classList.add('selected');
                         });
                     });
                 })
@@ -1294,7 +1344,7 @@
                                 options[idx - 1].classList.add('selected');
                                 options[idx - 1].scrollIntoView({ block: 'nearest' });
                             }
-                        } else if (e.key === 'Enter' && selected) {
+                        } else if ((e.key === 'Enter' || e.key === 'Tab') && selected) {
                             e.preventDefault();
                             // Call selectSubcuentaOption directly instead of dispatching event
                             self.selectSubcuentaOption(selected, input, newDropdown);
@@ -1406,7 +1456,7 @@
                         options[index - 1].classList.add('selected');
                         options[index - 1].scrollIntoView({ block: 'nearest' });
                     }
-                } else if (e.key === 'Enter' && selected) {
+                } else if ((e.key === 'Enter' || e.key === 'Tab') && selected) {
                     e.preventDefault();
                     // Call selectSubcuentaOption directly instead of click
                     self.selectSubcuentaOption(selected, input, dropdown);
@@ -1577,9 +1627,15 @@
                 .subcuenta-option:last-child {
                     border-bottom: none;
                 }
-                .subcuenta-option:hover,
-                .subcuenta-option.selected {
+                .subcuenta-option:hover {
                     background-color: #f8f9fa;
+                }
+                .subcuenta-option.selected {
+                    background-color: #0d6efd;
+                    color: #fff;
+                }
+                .subcuenta-option.selected strong {
+                    color: #fff;
                 }
                 .subcuenta-create-option {
                     border-top: 1px solid #dee2e6;
@@ -1588,6 +1644,13 @@
                 }
                 .subcuenta-create-option:hover {
                     background-color: #d4edda;
+                }
+                .subcuenta-create-option.selected {
+                    background-color: #198754;
+                    color: #fff;
+                }
+                .subcuenta-create-option.selected i {
+                    color: #fff;
                 }
                 /* Subcuenta modal should appear above product modal */
                 #quickCreateSubcuentaModal {
