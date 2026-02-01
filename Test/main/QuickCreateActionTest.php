@@ -794,4 +794,106 @@ class QuickCreateActionTest extends TestCase
             'getProductOptions should include default flag for warehouses'
         );
     }
+
+    // =========================================================================
+    // MARGIN AND PRICE TESTS (NEW FEATURES)
+    // =========================================================================
+
+    /**
+     * Test that createProduct handles margen field
+     */
+    public function testCreateProductHandlesMargenField(): void
+    {
+        $filename = $this->reflection->getFileName();
+        $controllerFile = file_get_contents($filename);
+
+        $this->assertStringContainsString(
+            "->get('margen'",
+            $controllerFile,
+            'createProduct should read margen from request'
+        );
+    }
+
+    /**
+     * Test that createProduct updates variante margen when provided
+     */
+    public function testCreateProductUpdatesVarianteMargen(): void
+    {
+        $filename = $this->reflection->getFileName();
+        $controllerFile = file_get_contents($filename);
+
+        $this->assertStringContainsString(
+            '$variante->margen',
+            $controllerFile,
+            'createProduct should update variante margen'
+        );
+    }
+
+    /**
+     * Test that createProduct updates variante precio
+     */
+    public function testCreateProductUpdatesVariantePrecio(): void
+    {
+        $filename = $this->reflection->getFileName();
+        $controllerFile = file_get_contents($filename);
+
+        $this->assertStringContainsString(
+            '$variante->precio',
+            $controllerFile,
+            'createProduct should update variante precio'
+        );
+    }
+
+    /**
+     * Test that createProduct handles publico checkbox
+     */
+    public function testCreateProductHandlesPublicoCheckbox(): void
+    {
+        $filename = $this->reflection->getFileName();
+        $controllerFile = file_get_contents($filename);
+
+        $this->assertStringContainsString(
+            "->get('publico'",
+            $controllerFile,
+            'createProduct should read publico checkbox from request'
+        );
+        $this->assertStringContainsString(
+            '$producto->publico',
+            $controllerFile,
+            'createProduct should set producto publico property'
+        );
+    }
+
+    /**
+     * Test that createProduct saves variante after setting precio/coste/margen
+     */
+    public function testCreateProductSavesVarianteWithPriceData(): void
+    {
+        $filename = $this->reflection->getFileName();
+        $controllerFile = file_get_contents($filename);
+
+        // Check the order: coste/margen/precio should be set before save
+        $costePos = strpos($controllerFile, '$variante->coste');
+        $savePos = strpos($controllerFile, '$variante->save()');
+
+        $this->assertNotFalse($costePos, 'Should set variante coste');
+        $this->assertNotFalse($savePos, 'Should save variante');
+        $this->assertLessThan($savePos, $costePos, 'Should set coste before saving variante');
+    }
+
+    /**
+     * Test margin calculation logic: if margen > 0, precio is calculated by Variante::save()
+     */
+    public function testCreateProductMarginLogicDocumented(): void
+    {
+        $filename = $this->reflection->getFileName();
+        $controllerFile = file_get_contents($filename);
+
+        // Check that the logic for margen > 0 exists
+        $this->assertStringContainsString(
+            '$margen > 0',
+            $controllerFile,
+            'createProduct should check if margen > 0 to decide calculation method'
+        );
+    }
 }

@@ -471,6 +471,7 @@
             const container = document.getElementById('quickCreateProductDynamicFields');
             const purchaseContainer = document.getElementById('quickCreateProductPurchaseFields');
             const stockContainer = document.getElementById('quickCreateProductStockFields');
+            const familyContainer = document.getElementById('quickCreateProductFamilyContainer');
             if (!container) return;
 
             if (this.productOptions === null) {
@@ -478,18 +479,24 @@
                 return;
             }
 
+            // Render Family select in row 1 (inside the modal header row)
+            if (familyContainer) {
+                familyContainer.innerHTML = this.buildSelect2Html('quickCreateProductFamily', 'codfamilia', this.trans('family'), this.productOptions.familias, '');
+                $(familyContainer).find('select.select2').select2({
+                    width: '100%',
+                    theme: 'bootstrap-5',
+                    dropdownParent: $('#quickCreateProductModal')
+                });
+            }
+
             let html = '';
 
-            // Row 1: Familia + Fabricante (Select2)
+            // Row 2: Fabricante + Proveedor + Impuesto + Excepción IVA (Select2)
             html += '<div class="row mb-2">';
-            html += this.buildSelect2Html('quickCreateProductFamily', 'codfamilia', this.trans('family'), this.productOptions.familias, 'col-md-6');
-            html += this.buildSelect2Html('quickCreateProductManufacturer', 'codfabricante', this.trans('manufacturer'), this.productOptions.fabricantes, 'col-md-6');
-            html += '</div>';
-
-            // Row 2: Impuesto + Excepción IVA (Select2)
-            html += '<div class="row mb-2">';
-            html += this.buildSelect2Html('quickCreateProductTax', 'codimpuesto', this.trans('tax'), this.productOptions.impuestos, 'col-md-6', this.productOptions.defaultTax);
-            html += this.buildSelect2Html('quickCreateProductVatException', 'excepcioniva', this.trans('vat-exception'), this.productOptions.excepciones, 'col-md-6');
+            html += this.buildSelect2Html('quickCreateProductManufacturer', 'codfabricante', this.trans('manufacturer'), this.productOptions.fabricantes, 'col-md-3');
+            html += this.buildSelect2Html('quickCreateProductSupplier', 'codproveedor', this.trans('supplier'), this.productOptions.proveedores || [], 'col-md-3');
+            html += this.buildSelect2Html('quickCreateProductTax', 'codimpuesto', this.trans('tax'), this.productOptions.impuestos, 'col-md-3', this.productOptions.defaultTax);
+            html += this.buildSelect2Html('quickCreateProductVatException', 'excepcioniva', this.trans('vat-exception'), this.productOptions.excepciones, 'col-md-3');
             html += '</div>';
 
             container.innerHTML = html;
@@ -501,7 +508,7 @@
                 dropdownParent: $('#quickCreateProductModal')
             });
 
-            // Render purchase data section
+            // Render purchase data section (now "Prices")
             this.renderPurchaseFields(purchaseContainer);
 
             // Render stock data section
@@ -516,16 +523,13 @@
 
             let html = '';
             html += '<div class="card mt-3 mb-2">';
-            html += `<div class="card-header py-2"><small class="text-muted"><i class="fas fa-truck me-1"></i>${this.trans('purchase-data')}</small></div>`;
+            html += `<div class="card-header py-2"><small class="text-muted"><i class="fas fa-euro-sign me-1"></i>${this.trans('prices')}</small></div>`;
             html += '<div class="card-body py-2">';
             html += '<div class="row">';
 
-            // Proveedor (Select2)
-            html += this.buildSelect2Html('quickCreateProductSupplier', 'codproveedor', this.trans('supplier'), this.productOptions.proveedores || [], 'col-md-4');
-
             // Precio compra
             html += `
-                <div class="col-md-2">
+                <div class="col-md-3">
                     <label for="quickCreateProductPurchasePrice" class="form-label">${this.trans('purchase-price')}</label>
                     <input type="number" step="0.01" class="form-control form-control-sm" id="quickCreateProductPurchasePrice" name="preciocompra" value="0">
                 </div>
@@ -542,14 +546,22 @@
                 </div>
             `;
 
-            // Margen % (readonly, calculated)
+            // Margen % (editable, calculates price)
             html += `
-                <div class="col-md-2">
+                <div class="col-md-3">
                     <label for="quickCreateProductMargin" class="form-label">${this.trans('margin')}</label>
                     <div class="input-group input-group-sm">
-                        <input type="number" step="0.01" class="form-control" id="quickCreateProductMargin" readonly>
+                        <input type="number" step="0.01" class="form-control" id="quickCreateProductMargin" name="margen" value="0">
                         <span class="input-group-text">%</span>
                     </div>
+                </div>
+            `;
+
+            // Precio venta
+            html += `
+                <div class="col-md-3">
+                    <label for="quickCreateProductPrice" class="form-label">${this.trans('sale-price')}</label>
+                    <input type="number" step="0.01" class="form-control form-control-sm" id="quickCreateProductPrice" name="precio" value="0">
                 </div>
             `;
 
@@ -558,13 +570,6 @@
             html += '</div>';
 
             container.innerHTML = html;
-
-            // Initialize Select2 for supplier
-            $(container).find('select.select2').select2({
-                width: '100%',
-                theme: 'bootstrap-5',
-                dropdownParent: $('#quickCreateProductModal')
-            });
 
             // Bind margin calculation events
             this.bindMarginCalculation();
@@ -592,7 +597,7 @@
                 </div>
             `;
 
-            // Checkboxes: No controlar stock + Permitir venta sin stock
+            // Checkboxes: No controlar stock + Permitir venta sin stock + Público
             html += `
                 <div class="col-md-5 d-flex align-items-end">
                     <div>
@@ -600,9 +605,13 @@
                             <input type="checkbox" name="nostock" value="TRUE" id="quickCreateProductNoStock" class="form-check-input">
                             <label for="quickCreateProductNoStock" class="form-check-label">${this.trans('no-stock-control')}</label>
                         </div>
-                        <div class="form-check">
+                        <div class="form-check mb-1">
                             <input type="checkbox" name="ventasinstock" value="TRUE" id="quickCreateProductSellWithoutStock" class="form-check-input">
                             <label for="quickCreateProductSellWithoutStock" class="form-check-label">${this.trans('allow-sale-without-stock')}</label>
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" name="publico" value="TRUE" id="quickCreateProductPublic" class="form-check-input">
+                            <label for="quickCreateProductPublic" class="form-check-label">${this.trans('public')}</label>
                         </div>
                     </div>
                 </div>
@@ -658,7 +667,6 @@
         },
 
         bindMarginCalculation: function () {
-            const self = this;
             const priceInput = document.getElementById('quickCreateProductPrice');
             const purchasePriceInput = document.getElementById('quickCreateProductPurchasePrice');
             const discountInput = document.getElementById('quickCreateProductDiscount');
@@ -666,29 +674,31 @@
 
             if (!priceInput || !purchasePriceInput || !discountInput || !marginInput) return;
 
-            const calculateMargin = function () {
-                const precioVenta = parseFloat(priceInput.value) || 0;
+            // Calculate price from margin: precio = neto * (1 + margen/100)
+            const calculatePrice = function () {
                 const precioCompra = parseFloat(purchasePriceInput.value) || 0;
                 const descuento = parseFloat(discountInput.value) || 0;
+                const margen = parseFloat(marginInput.value) || 0;
 
                 // Neto = precioCompra * (1 - descuento/100)
                 const neto = precioCompra * (1 - descuento / 100);
 
-                // Margen = ((precioVenta - neto) / neto) * 100
-                if (neto > 0) {
-                    const margen = ((precioVenta - neto) / neto) * 100;
-                    marginInput.value = margen.toFixed(2);
-                } else {
-                    marginInput.value = '';
+                // Precio = neto * (1 + margen/100)
+                if (neto > 0 && margen !== 0) {
+                    const precio = neto * (1 + margen / 100);
+                    priceInput.value = precio.toFixed(2);
                 }
             };
 
-            priceInput.addEventListener('input', calculateMargin);
-            purchasePriceInput.addEventListener('input', calculateMargin);
-            discountInput.addEventListener('input', calculateMargin);
+            // When price is changed directly, reset margin to 0
+            priceInput.addEventListener('input', function () {
+                marginInput.value = '0';
+            });
 
-            // Initial calculation
-            calculateMargin();
+            // When purchase price, discount, or margin changes, recalculate price
+            purchasePriceInput.addEventListener('input', calculatePrice);
+            discountInput.addEventListener('input', calculatePrice);
+            marginInput.addEventListener('input', calculatePrice);
         },
 
         buildSubcuentaInputHtml: function (id, name, label, colClass) {
@@ -1159,17 +1169,16 @@
                                 <div class="alert alert-danger d-none" id="quickCreateProductError"></div>
                                 <form id="quickCreateProductForm">
                                     <div class="row mb-3">
-                                        <div class="col-md-4">
+                                        <div class="col-md-3">
                                             <label for="quickCreateProductRef" class="form-label">${this.trans('reference')} *</label>
                                             <input type="text" class="form-control" id="quickCreateProductRef" name="referencia" required>
-                                        </div>
-                                        <div class="col-md-2">
-                                            <label for="quickCreateProductPrice" class="form-label">${this.trans('sale-price')}</label>
-                                            <input type="number" step="0.01" class="form-control" id="quickCreateProductPrice" name="precio" value="0">
                                         </div>
                                         <div class="col-md-6">
                                             <label for="quickCreateProductDesc" class="form-label">${this.trans('description')} *</label>
                                             <input type="text" class="form-control" id="quickCreateProductDesc" name="descripcion" required>
+                                        </div>
+                                        <div class="col-md-3" id="quickCreateProductFamilyContainer">
+                                            <!-- Family select will be injected here -->
                                         </div>
                                     </div>
                                     <div id="quickCreateProductDynamicFields"></div>
@@ -1791,7 +1800,9 @@
                 'accounting': 'Contabilidad (opcional)',
                 'sale-price': 'Precio venta',
                 'no-stock-control': 'No controlar stock',
-                'allow-sale-without-stock': 'Permitir venta sin stock'
+                'allow-sale-without-stock': 'Permitir venta sin stock',
+                'public': 'Público',
+                'prices': 'Precios (opcional)'
             };
 
             return fallback[key] || key;

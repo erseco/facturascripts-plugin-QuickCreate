@@ -125,6 +125,7 @@ class QuickCreateAction extends Controller
         $codsubcuentaven = $this->request->get('codsubcuentaven', '');
         $nostock = $this->request->get('nostock', '') === 'TRUE';
         $ventasinstock = $this->request->get('ventasinstock', '') === 'TRUE';
+        $publico = $this->request->get('publico', '') === 'TRUE';
 
         // Validate required fields
         if (empty($referencia)) {
@@ -177,6 +178,9 @@ class QuickCreateAction extends Controller
         if ($ventasinstock) {
             $producto->ventasinstock = true;
         }
+        if ($publico) {
+            $producto->publico = true;
+        }
 
         if (false === $producto->save()) {
             $this->response->setStatusCode(500);
@@ -191,11 +195,28 @@ class QuickCreateAction extends Controller
         $variante = new Variante();
         $variante->loadFromCode('', [new DataBaseWhere('idproducto', $producto->idproducto)]);
 
-        // Create ProductoProveedor if supplier and purchase price are provided
+        // Update variante with precio, coste and margen
         $codproveedor = $this->request->get('codproveedor', '');
         $preciocompra = (float) $this->request->get('preciocompra', 0);
         $dtopor = (float) $this->request->get('dtopor', 0);
+        $margen = (float) $this->request->get('margen', 0);
 
+        // Set coste (net purchase price after discount)
+        if ($preciocompra > 0) {
+            $variante->coste = $preciocompra * (1 - $dtopor / 100);
+        }
+
+        // If margen > 0, set margen and let Variante::save() calculate precio
+        // Otherwise, set precio directly
+        if ($margen > 0) {
+            $variante->margen = $margen;
+            // precio will be calculated by Variante::save() as: coste * (100 + margen) / 100
+        } else {
+            $variante->precio = $precio;
+        }
+        $variante->save();
+
+        // Create ProductoProveedor if supplier and purchase price are provided
         if (!empty($codproveedor) && $preciocompra > 0) {
             $prodProv = new ProductoProveedor();
             $prodProv->referencia = $variante->referencia;
@@ -204,10 +225,6 @@ class QuickCreateAction extends Controller
             $prodProv->dtopor = $dtopor;
             // neto is calculated automatically in test()
             $prodProv->save();
-
-            // Update variante with coste (net purchase price)
-            $variante->coste = $preciocompra * (1 - $dtopor / 100);
-            $variante->save();
         }
 
         // Create Stock if quantity and warehouse are provided
