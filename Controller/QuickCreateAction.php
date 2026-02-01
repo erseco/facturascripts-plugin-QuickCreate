@@ -204,14 +204,17 @@ class QuickCreateAction extends Controller
         // Set coste (net purchase price after discount)
         if ($preciocompra > 0) {
             $variante->coste = $preciocompra * (1 - $dtopor / 100);
-        }
 
-        // If margen > 0, set margen and let Variante::save() calculate precio
-        // Otherwise, set precio directly
-        if ($margen > 0) {
-            $variante->margen = $margen;
-            // precio will be calculated by Variante::save() as: coste * (100 + margen) / 100
+            // If margen > 0 and we have coste, let Variante::save() calculate precio
+            // Otherwise, set precio directly
+            if ($margen > 0) {
+                $variante->margen = $margen;
+                // precio will be calculated by Variante::save() as: coste * (100 + margen) / 100
+            } else {
+                $variante->precio = $precio;
+            }
         } else {
+            // No purchase price, just set the sale price directly
             $variante->precio = $precio;
         }
         $variante->save();
