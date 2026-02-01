@@ -20,7 +20,7 @@ services:
     image: erseco/alpine-facturascripts:main
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "8083:8080"
     environment:
       # Database Connection
       DB_HOST: mariadb
@@ -35,7 +35,16 @@ services:
       # Debug mode (set to false in production)
       FS_DEBUG: "true"
       # Disable cron tasks in development
-      RUN_CRON_TASKS: "false"
+      RUN_CRON_TASKS: "true"
+      # Auto-enable the QuickCreate plugin
+      POST_CONFIGURE_COMMANDS: |
+        php84 -r "
+          define('FS_FOLDER', '/var/www/html');
+          require '/var/www/html/vendor/autoload.php';
+          require '/var/www/html/config.php';
+          \FacturaScripts\Core\Kernel::init();
+          \FacturaScripts\Core\Plugins::enable('QuickCreate');
+        "
     volumes:
       - facturascripts_data:/var/www/html/volume
       # Mount the plugin directory
