@@ -30,6 +30,7 @@
 /package-lock.json      export-ignore
 
 # Development tools
+/biome.json             export-ignore
 /docker-compose.yml     export-ignore
 /Makefile               export-ignore
 /phpunit.xml            export-ignore
@@ -38,3 +39,6 @@
 /phpcs.xml              export-ignore
 /.php-cs-fixer.php      export-ignore
 /.php-cs-fixer.cache    export-ignore
+
+# Translation utilities
+/Translation/updater.php export-ignore
