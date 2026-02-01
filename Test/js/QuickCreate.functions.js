@@ -63,7 +63,19 @@ function trans(key) {
         'parent-account': 'Cuenta padre',
         'subaccount-code': 'Codigo subcuenta',
         'next-available-code': 'Siguiente codigo disponible',
-        'select-account': 'Seleccionar cuenta...'
+        'select-account': 'Seleccionar cuenta...',
+        'supplier': 'Proveedor',
+        'purchase-price': 'Precio compra',
+        'supplier-discount': 'Dto. %',
+        'margin': 'Margen',
+        'initial-stock': 'Stock inicial',
+        'warehouse': 'Almacen',
+        'purchase-data': 'Datos de compra (opcional)',
+        'stock-data': 'Stock inicial (opcional)',
+        'accounting': 'Contabilidad (opcional)',
+        'sale-price': 'Precio venta',
+        'no-stock-control': 'No controlar stock',
+        'allow-sale-without-stock': 'Permitir venta sin stock'
     };
 
     return fallback[key] || key;
@@ -114,9 +126,36 @@ function addCreateProductOption(results, searchTerm) {
     return results;
 }
 
+/**
+ * Calculates the profit margin percentage.
+ * Formula: Margin = ((salePrice - netCost) / netCost) * 100
+ * Where netCost = purchasePrice * (1 - discount/100)
+ *
+ * @param {number} salePrice - The sale price
+ * @param {number} purchasePrice - The purchase price
+ * @param {number} discount - The discount percentage (0-100)
+ * @returns {number|null} The margin percentage or null if netCost is 0
+ */
+function calculateMargin(salePrice, purchasePrice, discount) {
+    const precioVenta = parseFloat(salePrice) || 0;
+    const precioCompra = parseFloat(purchasePrice) || 0;
+    const descuento = parseFloat(discount) || 0;
+
+    // Net cost = purchasePrice * (1 - discount/100)
+    const neto = precioCompra * (1 - descuento / 100);
+
+    // Margin = ((salePrice - netCost) / netCost) * 100
+    if (neto > 0) {
+        return ((precioVenta - neto) / neto) * 100;
+    }
+
+    return null;
+}
+
 module.exports = {
     escapeHtml,
     trans,
     transformCodsubcuenta,
-    addCreateProductOption
+    addCreateProductOption,
+    calculateMargin
 };

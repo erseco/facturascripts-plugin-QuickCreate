@@ -559,4 +559,239 @@ class QuickCreateActionTest extends TestCase
         $result = $this->transformMethod->invoke($this->controller, '4300001.1', 10);
         $this->assertEquals('4300001001', $result);
     }
+
+    // =========================================================================
+    // SUPPLIER AND STOCK FIELDS TESTS (NEW FEATURES)
+    // =========================================================================
+
+    public function testGetProductOptionsMethodExists(): void
+    {
+        $this->assertTrue(
+            $this->reflection->hasMethod('getProductOptions'),
+            'getProductOptions method should exist'
+        );
+    }
+
+    public function testGetProductOptionsIsProtected(): void
+    {
+        $method = $this->reflection->getMethod('getProductOptions');
+        $this->assertTrue(
+            $method->isProtected(),
+            'getProductOptions method should be protected'
+        );
+    }
+
+    public function testCreateProductMethodExists(): void
+    {
+        $this->assertTrue(
+            $this->reflection->hasMethod('createProduct'),
+            'createProduct method should exist'
+        );
+    }
+
+    public function testCreateProductIsProtected(): void
+    {
+        $method = $this->reflection->getMethod('createProduct');
+        $this->assertTrue(
+            $method->isProtected(),
+            'createProduct method should be protected'
+        );
+    }
+
+    /**
+     * Test that the controller uses the required models for supplier/stock features
+     * by checking the file content using reflection to get the filename
+     */
+    public function testRequiredModelsImported(): void
+    {
+        $filename = $this->reflection->getFileName();
+        $controllerFile = file_get_contents($filename);
+
+        $requiredModels = [
+            'Almacen',
+            'ProductoProveedor',
+            'Proveedor',
+            'Stock',
+        ];
+
+        foreach ($requiredModels as $model) {
+            $this->assertStringContainsString(
+                "use FacturaScripts\\Dinamic\\Model\\{$model};",
+                $controllerFile,
+                "Controller should import {$model} model"
+            );
+        }
+    }
+
+    /**
+     * Test that createProduct method handles supplier fields
+     */
+    public function testCreateProductHandlesSupplierFields(): void
+    {
+        $filename = $this->reflection->getFileName();
+        $controllerFile = file_get_contents($filename);
+
+        // Check that the method reads supplier-related request parameters
+        $this->assertStringContainsString(
+            "->get('codproveedor'",
+            $controllerFile,
+            'createProduct should read codproveedor from request'
+        );
+        $this->assertStringContainsString(
+            "->get('preciocompra'",
+            $controllerFile,
+            'createProduct should read preciocompra from request'
+        );
+        $this->assertStringContainsString(
+            "->get('dtopor'",
+            $controllerFile,
+            'createProduct should read dtopor (discount) from request'
+        );
+    }
+
+    /**
+     * Test that createProduct method handles stock fields
+     */
+    public function testCreateProductHandlesStockFields(): void
+    {
+        $filename = $this->reflection->getFileName();
+        $controllerFile = file_get_contents($filename);
+
+        // Check that the method reads stock-related request parameters
+        $this->assertStringContainsString(
+            "->get('stock'",
+            $controllerFile,
+            'createProduct should read stock quantity from request'
+        );
+        $this->assertStringContainsString(
+            "->get('codalmacen'",
+            $controllerFile,
+            'createProduct should read codalmacen from request'
+        );
+    }
+
+    /**
+     * Test that createProduct method handles nostock and ventasinstock checkboxes
+     */
+    public function testCreateProductHandlesStockCheckboxes(): void
+    {
+        $filename = $this->reflection->getFileName();
+        $controllerFile = file_get_contents($filename);
+
+        $this->assertStringContainsString(
+            "->get('nostock'",
+            $controllerFile,
+            'createProduct should read nostock checkbox from request'
+        );
+        $this->assertStringContainsString(
+            "->get('ventasinstock'",
+            $controllerFile,
+            'createProduct should read ventasinstock checkbox from request'
+        );
+    }
+
+    /**
+     * Test that createProduct creates ProductoProveedor when supplier data is provided
+     */
+    public function testCreateProductCreatesProductoProveedor(): void
+    {
+        $filename = $this->reflection->getFileName();
+        $controllerFile = file_get_contents($filename);
+
+        $this->assertStringContainsString(
+            'new ProductoProveedor()',
+            $controllerFile,
+            'createProduct should create ProductoProveedor when supplier data is provided'
+        );
+    }
+
+    /**
+     * Test that createProduct creates Stock when stock data is provided
+     */
+    public function testCreateProductCreatesStock(): void
+    {
+        $filename = $this->reflection->getFileName();
+        $controllerFile = file_get_contents($filename);
+
+        $this->assertStringContainsString(
+            'new Stock()',
+            $controllerFile,
+            'createProduct should create Stock when stock data is provided'
+        );
+    }
+
+    /**
+     * Test that createProduct updates variante coste when supplier data is provided
+     */
+    public function testCreateProductUpdatesVarianteCoste(): void
+    {
+        $filename = $this->reflection->getFileName();
+        $controllerFile = file_get_contents($filename);
+
+        $this->assertStringContainsString(
+            '$variante->coste',
+            $controllerFile,
+            'createProduct should update variante coste with net purchase price'
+        );
+    }
+
+    /**
+     * Test that getProductOptions returns proveedores
+     */
+    public function testGetProductOptionsReturnsProveedores(): void
+    {
+        $filename = $this->reflection->getFileName();
+        $controllerFile = file_get_contents($filename);
+
+        $this->assertStringContainsString(
+            "'proveedores'",
+            $controllerFile,
+            'getProductOptions should return proveedores array'
+        );
+        $this->assertStringContainsString(
+            'new Proveedor()',
+            $controllerFile,
+            'getProductOptions should use Proveedor model'
+        );
+    }
+
+    /**
+     * Test that getProductOptions returns almacenes
+     */
+    public function testGetProductOptionsReturnsAlmacenes(): void
+    {
+        $filename = $this->reflection->getFileName();
+        $controllerFile = file_get_contents($filename);
+
+        $this->assertStringContainsString(
+            "'almacenes'",
+            $controllerFile,
+            'getProductOptions should return almacenes array'
+        );
+        $this->assertStringContainsString(
+            'new Almacen()',
+            $controllerFile,
+            'getProductOptions should use Almacen model'
+        );
+    }
+
+    /**
+     * Test that getProductOptions marks user's default warehouse
+     */
+    public function testGetProductOptionsMarksDefaultWarehouse(): void
+    {
+        $filename = $this->reflection->getFileName();
+        $controllerFile = file_get_contents($filename);
+
+        $this->assertStringContainsString(
+            '$this->user->codalmacen',
+            $controllerFile,
+            'getProductOptions should check user default warehouse'
+        );
+        $this->assertStringContainsString(
+            "'default'",
+            $controllerFile,
+            'getProductOptions should include default flag for warehouses'
+        );
+    }
 }

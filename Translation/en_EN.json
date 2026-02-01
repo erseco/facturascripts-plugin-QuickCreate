@@ -1,5 +1,6 @@
 {
     "account-already-exists": "Account already exists",
+    "accounting": "Accounting (optional)",
     "all-accounts": "All accounts",
     "create-subaccount-code": "Create subaccount",
     "filter-by-account": "Filter by account",
@@ -15,9 +16,11 @@
     "description": "Description",
     "exercise-not-found": "Exercise not found",
     "family": "Family",
+    "initial-stock": "Initial stock",
     "invalid-action": "Invalid action",
     "loading": "Loading...",
     "manufacturer": "Manufacturer",
+    "margin": "Margin",
     "next-available-code": "Next available code",
     "no-results": "No results",
     "parent-account": "Parent account",
@@ -25,6 +28,8 @@
     "permission-denied": "Permission denied",
     "price": "Price",
     "purchase-account": "Purchase account",
+    "purchase-data": "Purchase data (optional)",
+    "purchase-price": "Purchase price",
     "product-created": "Product created successfully",
     "product-creation-error": "Error creating product",
     "quick-create-account": "Quick create account",
@@ -37,7 +42,14 @@
     "save": "Save",
     "saving": "Saving...",
     "select-account": "Select account...",
+    "stock-data": "Initial stock (optional)",
     "subaccount-code": "Subaccount code",
+    "supplier": "Supplier",
+    "supplier-discount": "Discount %",
+    "allow-sale-without-stock": "Allow sale without stock",
+    "no-stock-control": "No stock control",
+    "sale-price": "Sale price",
     "tax": "Tax",
-    "vat-exception": "VAT Exception"
+    "vat-exception": "VAT Exception",
+    "warehouse": "Warehouse"
 }

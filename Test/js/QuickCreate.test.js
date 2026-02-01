@@ -19,7 +19,8 @@ const {
     escapeHtml,
     trans,
     transformCodsubcuenta,
-    addCreateProductOption
+    addCreateProductOption,
+    calculateMargin
 } = require('./QuickCreate.functions.js');
 
 describe('escapeHtml', () => {
@@ -109,6 +110,55 @@ describe('trans', () => {
 
     test('returns translation for connection-error key', () => {
         assert.strictEqual(trans('connection-error'), 'Error de conexion');
+    });
+
+    // New supplier and stock field translations
+    test('returns translation for supplier key', () => {
+        assert.strictEqual(trans('supplier'), 'Proveedor');
+    });
+
+    test('returns translation for purchase-price key', () => {
+        assert.strictEqual(trans('purchase-price'), 'Precio compra');
+    });
+
+    test('returns translation for supplier-discount key', () => {
+        assert.strictEqual(trans('supplier-discount'), 'Dto. %');
+    });
+
+    test('returns translation for margin key', () => {
+        assert.strictEqual(trans('margin'), 'Margen');
+    });
+
+    test('returns translation for initial-stock key', () => {
+        assert.strictEqual(trans('initial-stock'), 'Stock inicial');
+    });
+
+    test('returns translation for warehouse key', () => {
+        assert.strictEqual(trans('warehouse'), 'Almacen');
+    });
+
+    test('returns translation for sale-price key', () => {
+        assert.strictEqual(trans('sale-price'), 'Precio venta');
+    });
+
+    test('returns translation for no-stock-control key', () => {
+        assert.strictEqual(trans('no-stock-control'), 'No controlar stock');
+    });
+
+    test('returns translation for allow-sale-without-stock key', () => {
+        assert.strictEqual(trans('allow-sale-without-stock'), 'Permitir venta sin stock');
+    });
+
+    test('returns translation for purchase-data key', () => {
+        assert.strictEqual(trans('purchase-data'), 'Datos de compra (opcional)');
+    });
+
+    test('returns translation for stock-data key', () => {
+        assert.strictEqual(trans('stock-data'), 'Stock inicial (opcional)');
+    });
+
+    test('returns translation for accounting key', () => {
+        assert.strictEqual(trans('accounting'), 'Contabilidad (opcional)');
     });
 });
 
@@ -211,5 +261,101 @@ describe('addCreateProductOption', () => {
         assert.strictEqual(results.length, 1);
         // Should not include colon when search term is only whitespace
         assert.ok(!results[0].value.includes(':'));
+    });
+});
+
+describe('calculateMargin', () => {
+    // Basic margin calculations
+    test('calculates 100% margin when sale price is double the cost', () => {
+        // Sale: 1.00, Cost: 0.50, Discount: 0% -> Net: 0.50 -> Margin: 100%
+        const margin = calculateMargin(1.00, 0.50, 0);
+        assert.strictEqual(margin, 100);
+    });
+
+    test('calculates 0% margin when sale equals cost', () => {
+        // Sale: 1.00, Cost: 1.00, Discount: 0% -> Net: 1.00 -> Margin: 0%
+        const margin = calculateMargin(1.00, 1.00, 0);
+        assert.strictEqual(margin, 0);
+    });
+
+    test('calculates negative margin when sale is less than cost', () => {
+        // Sale: 0.80, Cost: 1.00, Discount: 0% -> Net: 1.00 -> Margin: -20%
+        const margin = calculateMargin(0.80, 1.00, 0);
+        assert.ok(Math.abs(margin - (-20)) < 0.0001, `Expected ~-20, got ${margin}`);
+    });
+
+    // Discount calculations
+    test('calculates margin with 50% discount', () => {
+        // Sale: 1.00, Cost: 1.00, Discount: 50% -> Net: 0.50 -> Margin: 100%
+        const margin = calculateMargin(1.00, 1.00, 50);
+        assert.strictEqual(margin, 100);
+    });
+
+    test('calculates margin with 10% discount', () => {
+        // Sale: 1.00, Cost: 1.00, Discount: 10% -> Net: 0.90 -> Margin: ~11.11%
+        const margin = calculateMargin(1.00, 1.00, 10);
+        assert.ok(Math.abs(margin - 11.111111111111111) < 0.0001);
+    });
+
+    test('calculates margin with 100% discount results in null', () => {
+        // Sale: 1.00, Cost: 1.00, Discount: 100% -> Net: 0 -> null (division by zero)
+        const margin = calculateMargin(1.00, 1.00, 100);
+        assert.strictEqual(margin, null);
+    });
+
+    // Edge cases
+    test('returns null when purchase price is 0', () => {
+        const margin = calculateMargin(1.00, 0, 0);
+        assert.strictEqual(margin, null);
+    });
+
+    test('returns null when purchase price and discount result in 0 net', () => {
+        const margin = calculateMargin(1.00, 0.50, 100);
+        assert.strictEqual(margin, null);
+    });
+
+    test('handles string inputs by parsing them', () => {
+        const margin = calculateMargin('1.00', '0.50', '0');
+        assert.strictEqual(margin, 100);
+    });
+
+    test('handles null inputs as 0', () => {
+        const margin = calculateMargin(null, null, null);
+        assert.strictEqual(margin, null); // Net is 0
+    });
+
+    test('handles undefined inputs as 0', () => {
+        const margin = calculateMargin(undefined, undefined, undefined);
+        assert.strictEqual(margin, null); // Net is 0
+    });
+
+    // Real-world scenarios from the plan
+    test('scenario from plan: sale 1.00, cost 0.50, discount 0%', () => {
+        // Expected: Margin 100%
+        const margin = calculateMargin(1.00, 0.50, 0);
+        assert.strictEqual(margin, 100);
+    });
+
+    test('scenario from plan: sale 1.00, cost 1.00, discount 50%', () => {
+        // Net = 1.00 * (1 - 50/100) = 0.50
+        // Margin = ((1.00 - 0.50) / 0.50) * 100 = 100%
+        const margin = calculateMargin(1.00, 1.00, 50);
+        assert.strictEqual(margin, 100);
+    });
+
+    // Precision tests
+    test('handles decimal precision correctly', () => {
+        // Sale: 10.50, Cost: 7.35, Discount: 5%
+        // Net = 7.35 * 0.95 = 6.9825
+        // Margin = ((10.50 - 6.9825) / 6.9825) * 100 = ~50.38%
+        const margin = calculateMargin(10.50, 7.35, 5);
+        assert.ok(margin > 50 && margin < 51);
+    });
+
+    test('calculates typical retail margin', () => {
+        // Common retail scenario: buy at 60, sell at 100, no discount
+        // Margin = ((100 - 60) / 60) * 100 = 66.67%
+        const margin = calculateMargin(100, 60, 0);
+        assert.ok(Math.abs(margin - 66.66666666666667) < 0.0001);
     });
 });

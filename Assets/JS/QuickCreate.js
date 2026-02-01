@@ -469,6 +469,8 @@
 
         renderProductDynamicFields: function () {
             const container = document.getElementById('quickCreateProductDynamicFields');
+            const purchaseContainer = document.getElementById('quickCreateProductPurchaseFields');
+            const stockContainer = document.getElementById('quickCreateProductStockFields');
             if (!container) return;
 
             if (this.productOptions === null) {
@@ -480,20 +482,14 @@
 
             // Row 1: Familia + Fabricante (Select2)
             html += '<div class="row mb-2">';
-            html += this.buildSelect2Html('quickCreateProductFamily', 'codfamilia', this.trans('family'), this.productOptions.familias, 'col-6');
-            html += this.buildSelect2Html('quickCreateProductManufacturer', 'codfabricante', this.trans('manufacturer'), this.productOptions.fabricantes, 'col-6');
+            html += this.buildSelect2Html('quickCreateProductFamily', 'codfamilia', this.trans('family'), this.productOptions.familias, 'col-md-6');
+            html += this.buildSelect2Html('quickCreateProductManufacturer', 'codfabricante', this.trans('manufacturer'), this.productOptions.fabricantes, 'col-md-6');
             html += '</div>';
 
             // Row 2: Impuesto + Excepción IVA (Select2)
             html += '<div class="row mb-2">';
-            html += this.buildSelect2Html('quickCreateProductTax', 'codimpuesto', this.trans('tax'), this.productOptions.impuestos, 'col-6', this.productOptions.defaultTax);
-            html += this.buildSelect2Html('quickCreateProductVatException', 'excepcioniva', this.trans('vat-exception'), this.productOptions.excepciones, 'col-6');
-            html += '</div>';
-
-            // Row 3: Cuenta compras + Cuenta ventas (Autocomplete with create button)
-            html += '<div class="row mb-2">';
-            html += this.buildSubcuentaInputHtml('quickCreateProductPurchaseAccount', 'codsubcuentacom', this.trans('purchase-account'), 'col-6');
-            html += this.buildSubcuentaInputHtml('quickCreateProductSalesAccount', 'codsubcuentaven', this.trans('sales-account'), 'col-6');
+            html += this.buildSelect2Html('quickCreateProductTax', 'codimpuesto', this.trans('tax'), this.productOptions.impuestos, 'col-md-6', this.productOptions.defaultTax);
+            html += this.buildSelect2Html('quickCreateProductVatException', 'excepcioniva', this.trans('vat-exception'), this.productOptions.excepciones, 'col-md-6');
             html += '</div>';
 
             container.innerHTML = html;
@@ -505,9 +501,194 @@
                 dropdownParent: $('#quickCreateProductModal')
             });
 
+            // Render purchase data section
+            this.renderPurchaseFields(purchaseContainer);
+
+            // Render stock data section
+            this.renderStockFields(stockContainer);
+
+            // Render accounting section
+            this.renderAccountingFields(container);
+        },
+
+        renderPurchaseFields: function (container) {
+            if (!container) return;
+
+            let html = '';
+            html += '<div class="card mt-3 mb-2">';
+            html += `<div class="card-header py-2"><small class="text-muted"><i class="fas fa-truck me-1"></i>${this.trans('purchase-data')}</small></div>`;
+            html += '<div class="card-body py-2">';
+            html += '<div class="row">';
+
+            // Proveedor (Select2)
+            html += this.buildSelect2Html('quickCreateProductSupplier', 'codproveedor', this.trans('supplier'), this.productOptions.proveedores || [], 'col-md-4');
+
+            // Precio compra
+            html += `
+                <div class="col-md-2">
+                    <label for="quickCreateProductPurchasePrice" class="form-label">${this.trans('purchase-price')}</label>
+                    <input type="number" step="0.01" class="form-control form-control-sm" id="quickCreateProductPurchasePrice" name="preciocompra" value="0">
+                </div>
+            `;
+
+            // Descuento %
+            html += `
+                <div class="col-md-2">
+                    <label for="quickCreateProductDiscount" class="form-label">${this.trans('supplier-discount')}</label>
+                    <div class="input-group input-group-sm">
+                        <input type="number" step="0.01" max="100" class="form-control" id="quickCreateProductDiscount" name="dtopor" value="0">
+                        <span class="input-group-text">%</span>
+                    </div>
+                </div>
+            `;
+
+            // Margen % (readonly, calculated)
+            html += `
+                <div class="col-md-2">
+                    <label for="quickCreateProductMargin" class="form-label">${this.trans('margin')}</label>
+                    <div class="input-group input-group-sm">
+                        <input type="number" step="0.01" class="form-control" id="quickCreateProductMargin" readonly>
+                        <span class="input-group-text">%</span>
+                    </div>
+                </div>
+            `;
+
+            html += '</div>';
+            html += '</div>';
+            html += '</div>';
+
+            container.innerHTML = html;
+
+            // Initialize Select2 for supplier
+            $(container).find('select.select2').select2({
+                width: '100%',
+                theme: 'bootstrap-5',
+                dropdownParent: $('#quickCreateProductModal')
+            });
+
+            // Bind margin calculation events
+            this.bindMarginCalculation();
+        },
+
+        renderStockFields: function (container) {
+            if (!container) return;
+
+            let html = '';
+            html += '<div class="card mb-2">';
+            html += `<div class="card-header py-2"><small class="text-muted"><i class="fas fa-boxes me-1"></i>${this.trans('stock-data')}</small></div>`;
+            html += '<div class="card-body py-2">';
+            html += '<div class="row">';
+
+            // Almacén (Select2)
+            const almacenes = this.productOptions.almacenes || [];
+            const defaultAlmacen = almacenes.find(a => a.default)?.value || '';
+            html += this.buildSelect2Html('quickCreateProductWarehouse', 'codalmacen', this.trans('warehouse'), almacenes, 'col-md-4', defaultAlmacen);
+
+            // Stock inicial
+            html += `
+                <div class="col-md-3">
+                    <label for="quickCreateProductStock" class="form-label">${this.trans('initial-stock')}</label>
+                    <input type="number" step="1" min="0" class="form-control form-control-sm" id="quickCreateProductStock" name="stock" value="0">
+                </div>
+            `;
+
+            // Checkboxes: No controlar stock + Permitir venta sin stock
+            html += `
+                <div class="col-md-5 d-flex align-items-end">
+                    <div>
+                        <div class="form-check mb-1">
+                            <input type="checkbox" name="nostock" value="TRUE" id="quickCreateProductNoStock" class="form-check-input">
+                            <label for="quickCreateProductNoStock" class="form-check-label">${this.trans('no-stock-control')}</label>
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" name="ventasinstock" value="TRUE" id="quickCreateProductSellWithoutStock" class="form-check-input">
+                            <label for="quickCreateProductSellWithoutStock" class="form-check-label">${this.trans('allow-sale-without-stock')}</label>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            html += '</div>';
+            html += '</div>';
+            html += '</div>';
+
+            container.innerHTML = html;
+
+            // Initialize Select2 for warehouse
+            $(container).find('select.select2').select2({
+                width: '100%',
+                theme: 'bootstrap-5',
+                dropdownParent: $('#quickCreateProductModal')
+            });
+        },
+
+        renderAccountingFields: function (parentContainer) {
+            // Create accounting section after the parent container
+            let accountingContainer = document.getElementById('quickCreateProductAccountingFields');
+            if (!accountingContainer) {
+                accountingContainer = document.createElement('div');
+                accountingContainer.id = 'quickCreateProductAccountingFields';
+                // Insert after stock fields
+                const stockContainer = document.getElementById('quickCreateProductStockFields');
+                if (stockContainer && stockContainer.nextSibling) {
+                    stockContainer.parentNode.insertBefore(accountingContainer, stockContainer.nextSibling);
+                } else if (stockContainer) {
+                    stockContainer.parentNode.appendChild(accountingContainer);
+                } else {
+                    parentContainer.appendChild(accountingContainer);
+                }
+            }
+
+            let html = '';
+            html += '<div class="card mb-2">';
+            html += `<div class="card-header py-2"><small class="text-muted"><i class="fas fa-calculator me-1"></i>${this.trans('accounting')}</small></div>`;
+            html += '<div class="card-body py-2">';
+            html += '<div class="row">';
+            html += this.buildSubcuentaInputHtml('quickCreateProductPurchaseAccount', 'codsubcuentacom', this.trans('purchase-account'), 'col-md-6');
+            html += this.buildSubcuentaInputHtml('quickCreateProductSalesAccount', 'codsubcuentaven', this.trans('sales-account'), 'col-md-6');
+            html += '</div>';
+            html += '</div>';
+            html += '</div>';
+
+            accountingContainer.innerHTML = html;
+
             // Initialize subcuenta autocomplete
             this.initSubcuentaAutocomplete('quickCreateProductPurchaseAccount');
             this.initSubcuentaAutocomplete('quickCreateProductSalesAccount');
+        },
+
+        bindMarginCalculation: function () {
+            const self = this;
+            const priceInput = document.getElementById('quickCreateProductPrice');
+            const purchasePriceInput = document.getElementById('quickCreateProductPurchasePrice');
+            const discountInput = document.getElementById('quickCreateProductDiscount');
+            const marginInput = document.getElementById('quickCreateProductMargin');
+
+            if (!priceInput || !purchasePriceInput || !discountInput || !marginInput) return;
+
+            const calculateMargin = function () {
+                const precioVenta = parseFloat(priceInput.value) || 0;
+                const precioCompra = parseFloat(purchasePriceInput.value) || 0;
+                const descuento = parseFloat(discountInput.value) || 0;
+
+                // Neto = precioCompra * (1 - descuento/100)
+                const neto = precioCompra * (1 - descuento / 100);
+
+                // Margen = ((precioVenta - neto) / neto) * 100
+                if (neto > 0) {
+                    const margen = ((precioVenta - neto) / neto) * 100;
+                    marginInput.value = margen.toFixed(2);
+                } else {
+                    marginInput.value = '';
+                }
+            };
+
+            priceInput.addEventListener('input', calculateMargin);
+            purchasePriceInput.addEventListener('input', calculateMargin);
+            discountInput.addEventListener('input', calculateMargin);
+
+            // Initial calculation
+            calculateMargin();
         },
 
         buildSubcuentaInputHtml: function (id, name, label, colClass) {
@@ -966,7 +1147,7 @@
         createProductModal: function () {
             const modalHtml = `
                 <div class="modal fade" id="quickCreateProductModal" tabindex="-1" aria-labelledby="quickCreateProductModalLabel" aria-hidden="true">
-                    <div class="modal-dialog">
+                    <div class="modal-dialog modal-lg">
                         <div class="modal-content">
                             <div class="modal-header">
                                 <h5 class="modal-title" id="quickCreateProductModalLabel">
@@ -978,20 +1159,22 @@
                                 <div class="alert alert-danger d-none" id="quickCreateProductError"></div>
                                 <form id="quickCreateProductForm">
                                     <div class="row mb-3">
-                                        <div class="col-9">
+                                        <div class="col-md-4">
                                             <label for="quickCreateProductRef" class="form-label">${this.trans('reference')} *</label>
                                             <input type="text" class="form-control" id="quickCreateProductRef" name="referencia" required>
                                         </div>
-                                        <div class="col-3">
-                                            <label for="quickCreateProductPrice" class="form-label">${this.trans('price')}</label>
+                                        <div class="col-md-2">
+                                            <label for="quickCreateProductPrice" class="form-label">${this.trans('sale-price')}</label>
                                             <input type="number" step="0.01" class="form-control" id="quickCreateProductPrice" name="precio" value="0">
                                         </div>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="quickCreateProductDesc" class="form-label">${this.trans('description')} *</label>
-                                        <textarea class="form-control" id="quickCreateProductDesc" name="descripcion" rows="2" required></textarea>
+                                        <div class="col-md-6">
+                                            <label for="quickCreateProductDesc" class="form-label">${this.trans('description')} *</label>
+                                            <input type="text" class="form-control" id="quickCreateProductDesc" name="descripcion" required>
+                                        </div>
                                     </div>
                                     <div id="quickCreateProductDynamicFields"></div>
+                                    <div id="quickCreateProductPurchaseFields"></div>
+                                    <div id="quickCreateProductStockFields"></div>
                                 </form>
                             </div>
                             <div class="modal-footer">
@@ -1596,7 +1779,19 @@
                 'parent-account': 'Cuenta padre',
                 'subaccount-code': 'Código subcuenta',
                 'next-available-code': 'Siguiente código disponible',
-                'select-account': 'Seleccionar cuenta...'
+                'select-account': 'Seleccionar cuenta...',
+                'supplier': 'Proveedor',
+                'purchase-price': 'Precio compra',
+                'supplier-discount': 'Dto. %',
+                'margin': 'Margen',
+                'initial-stock': 'Stock inicial',
+                'warehouse': 'Almacén',
+                'purchase-data': 'Datos de compra (opcional)',
+                'stock-data': 'Stock inicial (opcional)',
+                'accounting': 'Contabilidad (opcional)',
+                'sale-price': 'Precio venta',
+                'no-stock-control': 'No controlar stock',
+                'allow-sale-without-stock': 'Permitir venta sin stock'
             };
 
             return fallback[key] || key;

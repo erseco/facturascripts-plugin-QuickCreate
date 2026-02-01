@@ -24,12 +24,16 @@ use FacturaScripts\Core\Base\Controller;
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
 use FacturaScripts\Core\Lib\RegimenIVA;
 use FacturaScripts\Core\Tools;
+use FacturaScripts\Dinamic\Model\Almacen;
 use FacturaScripts\Dinamic\Model\Cuenta;
 use FacturaScripts\Dinamic\Model\Ejercicio;
 use FacturaScripts\Dinamic\Model\Fabricante;
 use FacturaScripts\Dinamic\Model\Familia;
 use FacturaScripts\Dinamic\Model\Impuesto;
 use FacturaScripts\Dinamic\Model\Producto;
+use FacturaScripts\Dinamic\Model\ProductoProveedor;
+use FacturaScripts\Dinamic\Model\Proveedor;
+use FacturaScripts\Dinamic\Model\Stock;
 use FacturaScripts\Dinamic\Model\Subcuenta;
 use FacturaScripts\Dinamic\Model\Variante;
 
@@ -119,6 +123,8 @@ class QuickCreateAction extends Controller
         $excepcioniva = $this->request->get('excepcioniva', '');
         $codsubcuentacom = $this->request->get('codsubcuentacom', '');
         $codsubcuentaven = $this->request->get('codsubcuentaven', '');
+        $nostock = $this->request->get('nostock', '') === 'TRUE';
+        $ventasinstock = $this->request->get('ventasinstock', '') === 'TRUE';
 
         // Validate required fields
         if (empty($referencia)) {
@@ -165,6 +171,12 @@ class QuickCreateAction extends Controller
         if (!empty($codsubcuentaven)) {
             $producto->codsubcuentaven = $codsubcuentaven;
         }
+        if ($nostock) {
+            $producto->nostock = true;
+        }
+        if ($ventasinstock) {
+            $producto->ventasinstock = true;
+        }
 
         if (false === $producto->save()) {
             $this->response->setStatusCode(500);
@@ -178,6 +190,38 @@ class QuickCreateAction extends Controller
         // Get the auto-created variante
         $variante = new Variante();
         $variante->loadFromCode('', [new DataBaseWhere('idproducto', $producto->idproducto)]);
+
+        // Create ProductoProveedor if supplier and purchase price are provided
+        $codproveedor = $this->request->get('codproveedor', '');
+        $preciocompra = (float) $this->request->get('preciocompra', 0);
+        $dtopor = (float) $this->request->get('dtopor', 0);
+
+        if (!empty($codproveedor) && $preciocompra > 0) {
+            $prodProv = new ProductoProveedor();
+            $prodProv->referencia = $variante->referencia;
+            $prodProv->codproveedor = $codproveedor;
+            $prodProv->precio = $preciocompra;
+            $prodProv->dtopor = $dtopor;
+            // neto is calculated automatically in test()
+            $prodProv->save();
+
+            // Update variante with coste (net purchase price)
+            $variante->coste = $preciocompra * (1 - $dtopor / 100);
+            $variante->save();
+        }
+
+        // Create Stock if quantity and warehouse are provided
+        $stockQty = (float) $this->request->get('stock', 0);
+        $codalmacen = $this->request->get('codalmacen', '');
+
+        if ($stockQty > 0 && !empty($codalmacen)) {
+            $stock = new Stock();
+            $stock->referencia = $variante->referencia;
+            $stock->idproducto = $producto->idproducto;
+            $stock->codalmacen = $codalmacen;
+            $stock->cantidad = $stockQty;
+            $stock->save();
+        }
 
         $this->response->setContent(json_encode([
             'ok' => true,
@@ -365,6 +409,28 @@ class QuickCreateAction extends Controller
             ];
         }
 
+        // Get suppliers
+        $proveedorModel = new Proveedor();
+        $proveedores = [];
+        foreach ($proveedorModel->all([], ['nombre' => 'ASC'], 0, 500) as $prov) {
+            $proveedores[] = [
+                'value' => $prov->codproveedor,
+                'label' => $prov->nombre,
+            ];
+        }
+
+        // Get warehouses
+        $almacenModel = new Almacen();
+        $almacenes = [];
+        $defaultAlmacen = $this->user->codalmacen ?? '';
+        foreach ($almacenModel->all([], ['nombre' => 'ASC'], 0, 50) as $alm) {
+            $almacenes[] = [
+                'value' => $alm->codalmacen,
+                'label' => $alm->nombre,
+                'default' => ($alm->codalmacen === $defaultAlmacen),
+            ];
+        }
+
         $this->response->setContent(json_encode([
             'ok' => true,
             'data' => [
@@ -373,6 +439,8 @@ class QuickCreateAction extends Controller
                 'impuestos' => $impuestos,
                 'excepciones' => $excepciones,
                 'defaultTax' => $defaultTax,
+                'proveedores' => $proveedores,
+                'almacenes' => $almacenes,
             ],
         ]));
     }
