@@ -1,101 +1,47 @@
-# QuickCreate Plugin for FacturaScripts
+# QuickCreate para FacturaScripts
 
-A FacturaScripts plugin that adds "+" buttons next to autocomplete fields, allowing you to create products and accounting accounts without leaving the current form.
+Plugin que permite crear productos y subcuentas contables de forma rápida sin salir del documento que estás editando.
 
-## Features
+## Creación rápida de productos
 
-- **Quick Product Creation**: Add products directly from sales/purchase document lines
-- **Quick Account Creation**: Add subcuentas directly from accounting entries (asientos)
-- **Permission-Aware**: Buttons only appear for users with appropriate permissions
-- **Dynamic Content Support**: Works with dynamically added document lines
-- **Bootstrap 5 Compatible**: Uses native Bootstrap 5 modals
+Cuando escribes en el campo de producto en presupuestos, pedidos, albaranes o facturas y no existe, aparece la opción de crearlo directamente desde el desplegable.
 
-## Requirements
+<p align="center">
+  <img src=".github/screenshot_1.png" alt="Opción crear producto en desplegable" width="300">
+</p>
 
-- FacturaScripts 2025 or later
-- PHP 8.2+
+Al seleccionar la opción se abre un modal donde puedes completar los datos del nuevo producto: referencia, precio, descripción, familia, fabricante, impuesto y cuentas contables.
 
-## Installation
+<p align="center">
+  <img src=".github/screenshot_2.png" alt="Modal crear producto" width="500">
+</p>
 
-1. Download the latest `QuickCreate-X.X.X.zip` from [GitHub Releases](../../releases/latest)
-2. Go to **Admin Panel → Plugins** in FacturaScripts
-3. Click **Upload plugin** and select the downloaded ZIP file
-4. Enable the plugin
+## Creación rápida de subcuentas
 
-> **Note**: Do not download the repository directly as a ZIP from GitHub's "Code" button. The release ZIP is specifically packaged for FacturaScripts and excludes development files.
+En los asientos contables y en los campos de cuenta de productos, cuando buscas una subcuenta que no existe, puedes crearla directamente.
 
-## Usage
+<p align="center">
+  <img src=".github/screenshot_3.png" alt="Opción crear subcuenta en desplegable" width="300">
+</p>
 
-### Products
+El plugin calcula automáticamente el siguiente código disponible dentro de la cuenta padre seleccionada.
 
-When editing sales or purchase documents (quotes, orders, delivery notes, invoices), you'll see a "+" button next to the product reference field. Click it to:
+<p align="center">
+  <img src=".github/screenshot_4.png" alt="Modal crear subcuenta" width="500">
+</p>
 
-1. Enter product reference (required)
-2. Enter description (optional)
-3. Enter price (optional)
-4. Click Save
+## Características
 
-The new product is created and automatically selected in the document line.
+- **Creación sin interrupciones**: No necesitas abandonar el documento para crear nuevos productos o subcuentas
+- **Código automático**: Las subcuentas se crean con el siguiente código disponible
+- **Integración total**: Funciona en todos los documentos de compra y venta, y en asientos contables
 
-### Accounting Accounts
+## Instalación
 
-When editing accounting entries (asientos), you'll see a "+" button next to subcuenta fields. Click it to:
+1. Descarga el ZIP desde [Releases](../../releases/latest)
+2. Ve a **Panel de Admin > Plugins** en FacturaScripts
+3. Sube el archivo ZIP y activa el plugin
 
-1. Enter account code (must match the exercise's required length)
-2. Enter description (optional, defaults to parent account description)
-3. Click Save
+## Licencia
 
-The new subcuenta is created and automatically selected in the entry line.
-
-## Supported Controllers
-
-### Sales Documents
-- EditPresupuestoCliente (Customer Quotes)
-- EditPedidoCliente (Customer Orders)
-- EditAlbaranCliente (Customer Delivery Notes)
-- EditFacturaCliente (Customer Invoices)
-
-### Purchase Documents
-- EditPresupuestoProveedor (Supplier Quotes)
-- EditPedidoProveedor (Supplier Orders)
-- EditAlbaranProveedor (Supplier Delivery Notes)
-- EditFacturaProveedor (Supplier Invoices)
-
-### Accounting
-- EditAsiento (Journal Entries)
-
-## Permissions
-
-The plugin respects FacturaScripts permissions:
-
-- **EditProducto**: Required to see the product quick-create button
-- **EditCuenta**: Required to see the account quick-create button
-
-Users without these permissions will not see the "+" buttons.
-
-## License
-
-This plugin is released under the GNU LGPLv3 license. See [LICENSE](LICENSE) for details.
-
-## Contributing
-
-Contributions are welcome! Please open an issue or submit a pull request.
-
-### Development Setup
-
-```bash
-# Clone the repository
-git clone https://github.com/erseco/facturascripts-plugin-QuickCreate.git
-cd facturascripts-plugin-QuickCreate
-
-# Start development environment with Docker
-make up
-
-# Open http://localhost:8080 (login: admin / admin)
-
-# Run tests
-make test
-
-# Create a release package
-make package VERSION=1.0.0
-```
+LGPL-3.0. Ver [LICENSE](LICENSE) para más detalles.
