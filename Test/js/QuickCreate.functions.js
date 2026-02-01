@@ -75,7 +75,9 @@ function trans(key) {
         'accounting': 'Contabilidad (opcional)',
         'sale-price': 'Precio venta',
         'no-stock-control': 'No controlar stock',
-        'allow-sale-without-stock': 'Permitir venta sin stock'
+        'allow-sale-without-stock': 'Permitir venta sin stock',
+        'public': 'Publico',
+        'prices': 'Precios (opcional)'
     };
 
     return fallback[key] || key;
@@ -152,10 +154,38 @@ function calculateMargin(salePrice, purchasePrice, discount) {
     return null;
 }
 
+/**
+ * Calculates the sale price from margin percentage.
+ * Formula: salePrice = netCost * (1 + margin/100)
+ * Where netCost = purchasePrice * (1 - discount/100)
+ * This is the inverse of calculateMargin.
+ *
+ * @param {number} purchasePrice - The purchase price
+ * @param {number} discount - The discount percentage (0-100)
+ * @param {number} margin - The desired margin percentage
+ * @returns {number|null} The calculated sale price or null if netCost is 0
+ */
+function calculatePriceFromMargin(purchasePrice, discount, margin) {
+    const precioCompra = parseFloat(purchasePrice) || 0;
+    const descuento = parseFloat(discount) || 0;
+    const margen = parseFloat(margin) || 0;
+
+    // Net cost = purchasePrice * (1 - discount/100)
+    const neto = precioCompra * (1 - descuento / 100);
+
+    // Sale price = netCost * (1 + margin/100)
+    if (neto > 0 && margen !== 0) {
+        return neto * (1 + margen / 100);
+    }
+
+    return null;
+}
+
 module.exports = {
     escapeHtml,
     trans,
     transformCodsubcuenta,
     addCreateProductOption,
-    calculateMargin
+    calculateMargin,
+    calculatePriceFromMargin
 };
