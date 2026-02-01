@@ -20,7 +20,8 @@ const {
     trans,
     transformCodsubcuenta,
     addCreateProductOption,
-    calculateMargin
+    calculateMargin,
+    calculatePriceFromMargin
 } = require('./QuickCreate.functions.js');
 
 describe('escapeHtml', () => {
@@ -159,6 +160,15 @@ describe('trans', () => {
 
     test('returns translation for accounting key', () => {
         assert.strictEqual(trans('accounting'), 'Contabilidad (opcional)');
+    });
+
+    // New translations for reorganized form
+    test('returns translation for public key', () => {
+        assert.strictEqual(trans('public'), 'Publico');
+    });
+
+    test('returns translation for prices key', () => {
+        assert.strictEqual(trans('prices'), 'Precios (opcional)');
     });
 });
 
@@ -357,5 +367,88 @@ describe('calculateMargin', () => {
         // Margin = ((100 - 60) / 60) * 100 = 66.67%
         const margin = calculateMargin(100, 60, 0);
         assert.ok(Math.abs(margin - 66.66666666666667) < 0.0001);
+    });
+});
+
+describe('calculatePriceFromMargin', () => {
+    // Basic price calculations from margin
+    test('calculates price with 100% margin', () => {
+        // Cost: 0.50, Discount: 0%, Margin: 100% -> Net: 0.50 -> Price: 1.00
+        const price = calculatePriceFromMargin(0.50, 0, 100);
+        assert.strictEqual(price, 1.00);
+    });
+
+    test('calculates price with 0% margin returns null', () => {
+        // Cost: 1.00, Discount: 0%, Margin: 0% -> returns null (margen === 0)
+        const price = calculatePriceFromMargin(1.00, 0, 0);
+        assert.strictEqual(price, null);
+    });
+
+    test('calculates price with negative margin', () => {
+        // Cost: 1.00, Discount: 0%, Margin: -20% -> Net: 1.00 -> Price: 0.80
+        const price = calculatePriceFromMargin(1.00, 0, -20);
+        assert.ok(Math.abs(price - 0.80) < 0.0001);
+    });
+
+    // Discount calculations
+    test('calculates price with 50% discount and 100% margin', () => {
+        // Cost: 1.00, Discount: 50%, Margin: 100% -> Net: 0.50 -> Price: 1.00
+        const price = calculatePriceFromMargin(1.00, 50, 100);
+        assert.strictEqual(price, 1.00);
+    });
+
+    test('calculates price with 10% discount and 40% margin', () => {
+        // Cost: 10, Discount: 50%, Margin: 40% -> Net: 5 -> Price: 7
+        const price = calculatePriceFromMargin(10, 50, 40);
+        assert.strictEqual(price, 7);
+    });
+
+    // Edge cases
+    test('returns null when purchase price is 0', () => {
+        const price = calculatePriceFromMargin(0, 0, 100);
+        assert.strictEqual(price, null);
+    });
+
+    test('returns null when 100% discount results in 0 net', () => {
+        const price = calculatePriceFromMargin(1.00, 100, 50);
+        assert.strictEqual(price, null);
+    });
+
+    test('handles string inputs by parsing them', () => {
+        const price = calculatePriceFromMargin('0.50', '0', '100');
+        assert.strictEqual(price, 1.00);
+    });
+
+    // Integration test: verify round-trip calculation
+    test('round-trip: calculateMargin and calculatePriceFromMargin are inverses', () => {
+        const purchasePrice = 10;
+        const discount = 20;
+        const originalMargin = 50;
+
+        // Calculate price from margin
+        const price = calculatePriceFromMargin(purchasePrice, discount, originalMargin);
+
+        // Calculate margin from price (should get back original margin)
+        const calculatedMargin = calculateMargin(price, purchasePrice, discount);
+
+        assert.ok(Math.abs(calculatedMargin - originalMargin) < 0.0001,
+            `Expected margin ~${originalMargin}, got ${calculatedMargin}`);
+    });
+
+    // Real-world scenario from the plan
+    test('scenario from plan: cost 10, discount 50%, margin 40%', () => {
+        // Net = 10 * (1 - 50/100) = 5
+        // Price = 5 * (1 + 40/100) = 7
+        const price = calculatePriceFromMargin(10, 50, 40);
+        assert.strictEqual(price, 7);
+    });
+
+    // Precision tests
+    test('handles decimal precision correctly', () => {
+        // Cost: 7.35, Discount: 5%, Margin: 50%
+        // Net = 7.35 * 0.95 = 6.9825
+        // Price = 6.9825 * 1.50 = 10.47375
+        const price = calculatePriceFromMargin(7.35, 5, 50);
+        assert.ok(Math.abs(price - 10.47375) < 0.0001);
     });
 });

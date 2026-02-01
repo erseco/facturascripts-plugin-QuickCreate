@@ -639,7 +639,7 @@
                 accountingContainer.id = 'quickCreateProductAccountingFields';
                 // Insert after stock fields
                 const stockContainer = document.getElementById('quickCreateProductStockFields');
-                if (stockContainer && stockContainer.nextSibling) {
+                if (stockContainer?.nextSibling) {
                     stockContainer.parentNode.insertBefore(accountingContainer, stockContainer.nextSibling);
                 } else if (stockContainer) {
                     stockContainer.parentNode.appendChild(accountingContainer);
@@ -666,7 +666,7 @@
             this.initSubcuentaAutocomplete('quickCreateProductSalesAccount');
         },
 
-        bindMarginCalculation: function () {
+        bindMarginCalculation: () => {
             const priceInput = document.getElementById('quickCreateProductPrice');
             const purchasePriceInput = document.getElementById('quickCreateProductPurchasePrice');
             const discountInput = document.getElementById('quickCreateProductDiscount');
@@ -675,7 +675,7 @@
             if (!priceInput || !purchasePriceInput || !discountInput || !marginInput) return;
 
             // Calculate price from margin: precio = neto * (1 + margen/100)
-            const calculatePrice = function () {
+            const calculatePrice = () => {
                 const precioCompra = parseFloat(purchasePriceInput.value) || 0;
                 const descuento = parseFloat(discountInput.value) || 0;
                 const margen = parseFloat(marginInput.value) || 0;
@@ -691,7 +691,7 @@
             };
 
             // When price is changed directly, reset margin to 0
-            priceInput.addEventListener('input', function () {
+            priceInput.addEventListener('input', () => {
                 marginInput.value = '0';
             });
 
@@ -1010,7 +1010,6 @@
 
         loadCuentasForModal: function (prefixQuery) {
             const $select = $('#subcuentaCuentaPadre');
-            const self = this;
 
             // Extract prefix from dot notation (e.g., "629.6" -> "629")
             let searchPrefix = prefixQuery || '';
@@ -1031,7 +1030,7 @@
                     $select.empty();
 
                     // Add default option
-                    $select.append(new Option(self.trans('select-account'), '', true, false));
+                    $select.append(new Option(this.trans('select-account'), '', true, false));
 
                     let matchingIdcuenta = null;
 
