@@ -1,6 +1,6 @@
 {
     "account-already-exists": "La subcuenta ya existe",
-    "accounting": "Contabilidad (opcional)",
+    "accounting-section": "Contabilidad (opcional)",
     "all-accounts": "Todas las cuentas",
     "create-subaccount-code": "Crear subcuenta",
     "filter-by-account": "Filtrar por cuenta",
