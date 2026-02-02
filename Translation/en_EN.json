@@ -1,6 +1,6 @@
 {
     "account-already-exists": "Account already exists",
-    "accounting": "Accounting (optional)",
+    "accounting-section": "Accounting (optional)",
     "all-accounts": "All accounts",
     "create-subaccount-code": "Create subaccount",
     "filter-by-account": "Filter by account",

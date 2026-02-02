@@ -650,7 +650,7 @@
 
             let html = '';
             html += '<div class="card mb-2">';
-            html += `<div class="card-header py-2"><small class="text-muted"><i class="fas fa-calculator me-1"></i>${this.trans('accounting')}</small></div>`;
+            html += `<div class="card-header py-2"><small class="text-muted"><i class="fas fa-calculator me-1"></i>${this.trans('accounting-section')}</small></div>`;
             html += '<div class="card-body py-2">';
             html += '<div class="row">';
             html += this.buildSubcuentaInputHtml('quickCreateProductPurchaseAccount', 'codsubcuentacom', this.trans('purchase-account'), 'col-md-6');
@@ -1796,7 +1796,7 @@
                 'warehouse': 'Almacén',
                 'purchase-data': 'Datos de compra (opcional)',
                 'stock-data': 'Stock inicial (opcional)',
-                'accounting': 'Contabilidad (opcional)',
+                'accounting-section': 'Contabilidad (opcional)',
                 'sale-price': 'Precio venta',
                 'no-stock-control': 'No controlar stock',
                 'allow-sale-without-stock': 'Permitir venta sin stock',
