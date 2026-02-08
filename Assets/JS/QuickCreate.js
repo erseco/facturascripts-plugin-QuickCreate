@@ -1099,8 +1099,18 @@
                 return;
             }
 
+            // Get the target codejercicio to ensure we generate code for the correct exercise
+            const codejercicioInput = document.getElementById('subcuentaCodejercicio');
+            const codejercicio = codejercicioInput ? codejercicioInput.value : '';
+
+            // Build URL with optional codejercicio parameter
+            let url = `${this.getApiUrl()}?action=get-next-subcuenta-code&idcuenta=${encodeURIComponent(idcuenta)}`;
+            if (codejercicio) {
+                url += `&codejercicio=${encodeURIComponent(codejercicio)}`;
+            }
+
             // Otherwise fetch the next available code
-            fetch(`${this.getApiUrl()}?action=get-next-subcuenta-code&idcuenta=${encodeURIComponent(idcuenta)}`)
+            fetch(url)
                 .then(response => response.json())
                 .then(data => {
                     if (data.ok && data.data.codsubcuenta) {

@@ -753,6 +753,8 @@ class QuickCreateAction extends Controller
         }
 
         $idcuenta = (int) $this->request->get('idcuenta', 0);
+        $codejercicio = trim($this->request->get('codejercicio', ''));
+
         if ($idcuenta <= 0) {
             $this->response->setStatusCode(400);
             $this->response->setContent(json_encode([
@@ -772,7 +774,24 @@ class QuickCreateAction extends Controller
             return;
         }
 
-        $nextCode = $this->getNextFreeSubcuentaCode($cuenta->codcuenta, $cuenta->codejercicio);
+        // Determine target exercise: use provided codejercicio, otherwise fall back to cuenta's exercise
+        $targetCodejercicio = $codejercicio ?: $cuenta->codejercicio;
+
+        // Validate that the target exercise exists
+        if (!empty($codejercicio)) {
+            $ejercicio = new Ejercicio();
+            if (false === $ejercicio->loadFromCode($codejercicio)) {
+                $this->response->setStatusCode(400);
+                $this->response->setContent(json_encode([
+                    'ok' => false,
+                    'message' => Tools::lang()->trans('exercise-not-found'),
+                ]));
+                return;
+            }
+        }
+
+        // Generate next code for the target exercise
+        $nextCode = $this->getNextFreeSubcuentaCode($cuenta->codcuenta, $targetCodejercicio);
 
         $this->response->setContent(json_encode([
             'ok' => true,
@@ -780,6 +799,7 @@ class QuickCreateAction extends Controller
                 'codsubcuenta' => $nextCode,
                 'codcuenta' => $cuenta->codcuenta,
                 'descripcion' => $cuenta->descripcion,
+                'codejercicio' => $targetCodejercicio,
             ],
         ]));
     }

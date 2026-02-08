@@ -1037,4 +1037,56 @@ class QuickCreateActionTest extends TestCase
             'createSubcuenta should prioritize request codejercicio over cuenta codejercicio'
         );
     }
+
+    // =========================================================================
+    // GET NEXT SUBCUENTA CODE WITH CODEJERCICIO TESTS
+    // =========================================================================
+
+    /**
+     * Test that getNextSubcuentaCode accepts codejercicio parameter from request
+     */
+    public function testGetNextSubcuentaCodeAcceptsCodejercicioParameter(): void
+    {
+        $filename = $this->reflection->getFileName();
+        $controllerFile = file_get_contents($filename);
+
+        // getNextSubcuentaCode should read codejercicio from request
+        $this->assertStringContainsString(
+            "\$codejercicio = trim(\$this->request->get('codejercicio', ''));",
+            $controllerFile,
+            'getNextSubcuentaCode should read codejercicio from request'
+        );
+    }
+
+    /**
+     * Test that getNextSubcuentaCode uses targetCodejercicio for code generation
+     */
+    public function testGetNextSubcuentaCodeUsesTargetCodejercicio(): void
+    {
+        $filename = $this->reflection->getFileName();
+        $controllerFile = file_get_contents($filename);
+
+        // Should pass targetCodejercicio to getNextFreeSubcuentaCode
+        $this->assertStringContainsString(
+            '$this->getNextFreeSubcuentaCode($cuenta->codcuenta, $targetCodejercicio)',
+            $controllerFile,
+            'getNextSubcuentaCode should use targetCodejercicio for code generation'
+        );
+    }
+
+    /**
+     * Test that getNextSubcuentaCode returns codejercicio in response
+     */
+    public function testGetNextSubcuentaCodeReturnsCodejercicioInResponse(): void
+    {
+        $filename = $this->reflection->getFileName();
+        $controllerFile = file_get_contents($filename);
+
+        // Should include codejercicio in the response
+        $this->assertStringContainsString(
+            "'codejercicio' => \$targetCodejercicio",
+            $controllerFile,
+            'getNextSubcuentaCode should return codejercicio in response'
+        );
+    }
 }
