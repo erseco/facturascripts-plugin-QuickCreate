@@ -896,4 +896,197 @@ class QuickCreateActionTest extends TestCase
             'createProduct should check if margen > 0 to decide calculation method'
         );
     }
+
+    // =========================================================================
+    // SUBACCOUNT CREATION WITH CODEJERCICIO TESTS
+    // =========================================================================
+
+    /**
+     * Test that createSubcuenta accepts codejercicio parameter from request
+     */
+    public function testCreateSubcuentaAcceptsCodejercicioParameter(): void
+    {
+        $filename = $this->reflection->getFileName();
+        $controllerFile = file_get_contents($filename);
+
+        $this->assertStringContainsString(
+            "\$codejercicio = trim(\$this->request->get('codejercicio', ''));",
+            $controllerFile,
+            'createSubcuenta should read codejercicio from request'
+        );
+    }
+
+    /**
+     * Test that createSubcuenta validates codejercicio if provided
+     */
+    public function testCreateSubcuentaValidatesCodejercicio(): void
+    {
+        $filename = $this->reflection->getFileName();
+        $controllerFile = file_get_contents($filename);
+
+        // Should check if codejercicio was provided and validate it
+        $this->assertStringContainsString(
+            '!empty($codejercicio)',
+            $controllerFile,
+            'createSubcuenta should check if codejercicio is not empty'
+        );
+
+        // Should load Ejercicio to validate
+        $this->assertStringContainsString(
+            'new Ejercicio()',
+            $controllerFile,
+            'createSubcuenta should create Ejercicio instance'
+        );
+    }
+
+    /**
+     * Test that createSubcuenta finds parent cuenta in target exercise
+     */
+    public function testCreateSubcuentaFindsParentCuentaInTargetExercise(): void
+    {
+        $filename = $this->reflection->getFileName();
+        $controllerFile = file_get_contents($filename);
+
+        // Should load cuenta in the target ejercicio
+        $this->assertStringContainsString(
+            '$cuentaInEjercicio',
+            $controllerFile,
+            'createSubcuenta should find cuenta in target ejercicio'
+        );
+
+        // Should search by codcuenta and codejercicio
+        $this->assertStringContainsString(
+            "new DataBaseWhere('codcuenta',",
+            $controllerFile,
+            'createSubcuenta should search cuenta by codcuenta'
+        );
+        $this->assertStringContainsString(
+            '$cuenta->codcuenta',
+            $controllerFile,
+            'createSubcuenta should use parent cuenta code in search'
+        );
+    }
+
+    /**
+     * Test that createSubcuenta uses targetCodejercicio for subcuenta creation
+     */
+    public function testCreateSubcuentaUsesTargetCodejercicio(): void
+    {
+        $filename = $this->reflection->getFileName();
+        $controllerFile = file_get_contents($filename);
+
+        // Should determine target codejercicio
+        $this->assertStringContainsString(
+            '$targetCodejercicio',
+            $controllerFile,
+            'createSubcuenta should use targetCodejercicio variable'
+        );
+
+        // Should assign target codejercicio to subcuenta
+        $this->assertStringContainsString(
+            '$subcuenta->codejercicio = $targetCodejercicio;',
+            $controllerFile,
+            'createSubcuenta should assign targetCodejercicio to subcuenta'
+        );
+    }
+
+    /**
+     * Test that createSubcuenta returns codejercicio in response
+     */
+    public function testCreateSubcuentaReturnsCodejercicioInResponse(): void
+    {
+        $filename = $this->reflection->getFileName();
+        $controllerFile = file_get_contents($filename);
+
+        // Should include codejercicio in the response data
+        $this->assertStringContainsString(
+            "'codejercicio' => \$subcuenta->codejercicio",
+            $controllerFile,
+            'createSubcuenta should return codejercicio in response data'
+        );
+    }
+
+    /**
+     * Test that createSubcuenta has error message for parent account not found in exercise
+     */
+    public function testCreateSubcuentaHasExerciseErrorMessage(): void
+    {
+        $filename = $this->reflection->getFileName();
+        $controllerFile = file_get_contents($filename);
+
+        // Should have a specific error message for parent account not found in exercise
+        $this->assertStringContainsString(
+            'parent-account-not-found-in-exercise',
+            $controllerFile,
+            'createSubcuenta should have error message for parent account not in exercise'
+        );
+    }
+
+    /**
+     * Test that createSubcuenta prioritizes request codejercicio over cuenta codejercicio
+     */
+    public function testCreateSubcuentaPrioritizesRequestCodejercicio(): void
+    {
+        $filename = $this->reflection->getFileName();
+        $controllerFile = file_get_contents($filename);
+
+        // Should use request codejercicio if provided, otherwise fall back to cuenta's
+        $this->assertStringContainsString(
+            '$targetCodejercicio = $codejercicio ?: $cuenta->codejercicio;',
+            $controllerFile,
+            'createSubcuenta should prioritize request codejercicio over cuenta codejercicio'
+        );
+    }
+
+    // =========================================================================
+    // GET NEXT SUBCUENTA CODE WITH CODEJERCICIO TESTS
+    // =========================================================================
+
+    /**
+     * Test that getNextSubcuentaCode accepts codejercicio parameter from request
+     */
+    public function testGetNextSubcuentaCodeAcceptsCodejercicioParameter(): void
+    {
+        $filename = $this->reflection->getFileName();
+        $controllerFile = file_get_contents($filename);
+
+        // getNextSubcuentaCode should read codejercicio from request
+        $this->assertStringContainsString(
+            "\$codejercicio = trim(\$this->request->get('codejercicio', ''));",
+            $controllerFile,
+            'getNextSubcuentaCode should read codejercicio from request'
+        );
+    }
+
+    /**
+     * Test that getNextSubcuentaCode uses targetCodejercicio for code generation
+     */
+    public function testGetNextSubcuentaCodeUsesTargetCodejercicio(): void
+    {
+        $filename = $this->reflection->getFileName();
+        $controllerFile = file_get_contents($filename);
+
+        // Should pass targetCodejercicio to getNextFreeSubcuentaCode
+        $this->assertStringContainsString(
+            '$this->getNextFreeSubcuentaCode($cuenta->codcuenta, $targetCodejercicio)',
+            $controllerFile,
+            'getNextSubcuentaCode should use targetCodejercicio for code generation'
+        );
+    }
+
+    /**
+     * Test that getNextSubcuentaCode returns codejercicio in response
+     */
+    public function testGetNextSubcuentaCodeReturnsCodejercicioInResponse(): void
+    {
+        $filename = $this->reflection->getFileName();
+        $controllerFile = file_get_contents($filename);
+
+        // Should include codejercicio in the response
+        $this->assertStringContainsString(
+            "'codejercicio' => \$targetCodejercicio",
+            $controllerFile,
+            'getNextSubcuentaCode should return codejercicio in response'
+        );
+    }
 }
