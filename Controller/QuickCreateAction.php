@@ -822,10 +822,6 @@ class QuickCreateAction extends Controller
             return;
         }
 
-        // Determine which codejercicio to use
-        // Priority: 1. Explicit parameter from request, 2. Parent cuenta's exercise
-        $targetCodejercicio = $codejercicio ?: $cuenta->codejercicio;
-
         // If codejercicio was provided, validate it exists
         if (!empty($codejercicio)) {
             $ejercicio = new Ejercicio();
@@ -838,6 +834,10 @@ class QuickCreateAction extends Controller
                 return;
             }
         }
+
+        // Determine which codejercicio to use after validation
+        // Priority: 1. Explicit parameter from request (validated), 2. Parent cuenta's exercise
+        $targetCodejercicio = $codejercicio ?: $cuenta->codejercicio;
 
         // Find the parent cuenta in the target ejercicio
         $cuentaInEjercicio = new Cuenta();
