@@ -927,7 +927,7 @@
             const codejercicioInput = document.getElementById('subcuentaCodejercicio');
             if (codejercicioInput) {
                 const docExerciseInput = document.querySelector('input[name="codejercicio"], select[name="codejercicio"]');
-                if (docExerciseInput && docExerciseInput.value) {
+                if (docExerciseInput?.value) {
                     codejercicioInput.value = docExerciseInput.value;
                 } else {
                     // Fallback to stored exercise info from search
