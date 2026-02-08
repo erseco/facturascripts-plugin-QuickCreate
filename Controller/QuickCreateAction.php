@@ -847,8 +847,9 @@ class QuickCreateAction extends Controller
 
         // Find the parent cuenta in the target ejercicio
         $cuentaInEjercicio = new Cuenta();
-        // loadFromCode('', [...]) means: load by WHERE conditions, not by primary key
-        // Empty string as first param indicates we're using WHERE conditions (second param)
+        // loadFromCode signature: loadFromCode($code, $where = [], $orderby = [])
+        // Empty string as first param triggers WHERE-based loading instead of primary key lookup
+        // This allows us to find a cuenta by its natural key (codcuenta + codejercicio)
         if (
             false === $cuentaInEjercicio->loadFromCode('', [
                 new DataBaseWhere('codcuenta', $cuenta->codcuenta),

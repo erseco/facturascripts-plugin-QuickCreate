@@ -926,8 +926,11 @@
             // Get document's codejercicio if available (from invoice/order context)
             const codejercicioInput = document.getElementById('subcuentaCodejercicio');
             if (codejercicioInput) {
-                // Look for document's exercise field (should be unique in the form)
-                // In FacturaScripts, documents have a single codejercicio field
+                // Look for document's exercise field
+                // In FacturaScripts documents:
+                // - Can be an <input> in some document types (e.g., locked/readonly)
+                // - Can be a <select> dropdown in others (e.g., when editable)
+                // We check both cases; querySelector returns the first match
                 const docExerciseInput = document.querySelector('input[name="codejercicio"], select[name="codejercicio"]');
                 if (docExerciseInput?.value) {
                     // Use document's exercise (from invoice/order being edited)
@@ -940,7 +943,7 @@
                 } else {
                     // No exercise context available - leave empty
                     // Backend will use parent cuenta's exercise as last resort
-                    console.warn('[QuickCreate] No exercise context found for subaccount creation');
+                    // This is an edge case but valid for standalone subaccount creation
                     codejercicioInput.value = '';
                 }
             }
