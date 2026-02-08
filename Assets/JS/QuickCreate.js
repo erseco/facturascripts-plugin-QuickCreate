@@ -929,11 +929,17 @@
                 const docExerciseInput = document.querySelector('input[name="codejercicio"], select[name="codejercicio"]');
                 if (docExerciseInput?.value) {
                     // Use document's exercise (from invoice/order being edited)
+                    // This is the primary source and should always be used when available
                     codejercicioInput.value = docExerciseInput.value;
-                } else {
+                } else if (this.exerciseInfo?.codejercicio) {
                     // Fallback to stored exercise info (populated during searchSubcuenta)
                     // This happens when creating from EditAsiento context
-                    codejercicioInput.value = this.exerciseInfo?.codejercicio || '';
+                    codejercicioInput.value = this.exerciseInfo.codejercicio;
+                } else {
+                    // No exercise context available - leave empty
+                    // Backend will use parent cuenta's exercise as last resort
+                    console.warn('[QuickCreate] No exercise context found for subaccount creation');
+                    codejercicioInput.value = '';
                 }
             }
 

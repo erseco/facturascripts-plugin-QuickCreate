@@ -836,7 +836,13 @@ class QuickCreateAction extends Controller
         }
 
         // Determine which codejercicio to use after validation
-        // Priority: 1. Explicit parameter from request (validated), 2. Parent cuenta's exercise
+        // Priority: 1. Explicit parameter from request (validated above)
+        //           2. Parent cuenta's exercise (safe fallback when no document context)
+        // Note: Using parent cuenta's exercise is acceptable when:
+        // - Creating from EditAsiento context without document
+        // - Creating standalone subaccounts
+        // The original bug only occurs when creating from within a document (invoice/order)
+        // and the document's exercise should be passed via the request parameter
         $targetCodejercicio = $codejercicio ?: $cuenta->codejercicio;
 
         // Find the parent cuenta in the target ejercicio
