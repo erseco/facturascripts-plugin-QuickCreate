@@ -923,6 +923,18 @@
                 descInput.value = '';
             }
 
+            // Get document's codejercicio if available (from invoice/order context)
+            const codejercicioInput = document.getElementById('subcuentaCodejercicio');
+            if (codejercicioInput) {
+                const docExerciseInput = document.querySelector('input[name="codejercicio"], select[name="codejercicio"]');
+                if (docExerciseInput && docExerciseInput.value) {
+                    codejercicioInput.value = docExerciseInput.value;
+                } else {
+                    // Fallback to stored exercise info from search
+                    codejercicioInput.value = this.exerciseInfo?.codejercicio || '';
+                }
+            }
+
             // Load cuentas based on prefix (this may trigger onCuentaPadreChange)
             this.loadCuentasForModal(prefixQuery);
 
@@ -959,6 +971,7 @@
                                         <label for="subcuentaDescripcion" class="form-label">${this.trans('description')} *</label>
                                         <input type="text" class="form-control" id="subcuentaDescripcion" required>
                                     </div>
+                                    <input type="hidden" id="subcuentaCodejercicio" name="codejercicio">
                                 </form>
                             </div>
                             <div class="modal-footer">
@@ -1093,6 +1106,7 @@
             const idcuenta = document.getElementById('subcuentaCuentaPadre').value;
             const codsubcuenta = document.getElementById('subcuentaCodigo').value;
             const descripcion = document.getElementById('subcuentaDescripcion').value.trim();
+            const codejercicio = document.getElementById('subcuentaCodejercicio').value;
 
             // Validate
             if (!idcuenta || !codsubcuenta || !descripcion) {
@@ -1109,6 +1123,10 @@
             formData.append('idcuenta', idcuenta);
             formData.append('codsubcuenta', codsubcuenta);
             formData.append('descripcion', descripcion);
+            // Only send codejercicio if it's available
+            if (codejercicio) {
+                formData.append('codejercicio', codejercicio);
+            }
 
             fetch(`${this.getApiUrl()}?action=create-subcuenta`, {
                 method: 'POST',

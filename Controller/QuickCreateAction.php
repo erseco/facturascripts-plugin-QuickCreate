@@ -799,6 +799,7 @@ class QuickCreateAction extends Controller
         $idcuenta = (int) $this->request->get('idcuenta', 0);
         $codsubcuenta = trim($this->request->get('codsubcuenta', ''));
         $descripcion = trim($this->request->get('descripcion', ''));
+        $codejercicio = trim($this->request->get('codejercicio', ''));
 
         // Validate required fields
         if ($idcuenta <= 0 || empty($codsubcuenta)) {
@@ -821,12 +822,45 @@ class QuickCreateAction extends Controller
             return;
         }
 
-        // Check if subcuenta already exists
+        // Determine which codejercicio to use
+        // Priority: 1. Explicit parameter from request, 2. Parent cuenta's exercise
+        $targetCodejercicio = $codejercicio ?: $cuenta->codejercicio;
+
+        // If codejercicio was provided, validate it exists
+        if (!empty($codejercicio)) {
+            $ejercicio = new Ejercicio();
+            if (false === $ejercicio->loadFromCode($codejercicio)) {
+                $this->response->setStatusCode(400);
+                $this->response->setContent(json_encode([
+                    'ok' => false,
+                    'message' => Tools::lang()->trans('exercise-not-found'),
+                ]));
+                return;
+            }
+        }
+
+        // Find the parent cuenta in the target ejercicio
+        $cuentaInEjercicio = new Cuenta();
+        if (
+            false === $cuentaInEjercicio->loadFromCode('', [
+            new DataBaseWhere('codcuenta', $cuenta->codcuenta),
+            new DataBaseWhere('codejercicio', $targetCodejercicio),
+            ])
+        ) {
+            $this->response->setStatusCode(400);
+            $this->response->setContent(json_encode([
+                'ok' => false,
+                'message' => Tools::lang()->trans('parent-account-not-found-in-exercise'),
+            ]));
+            return;
+        }
+
+        // Check if subcuenta already exists in target exercise
         $existingSubcuenta = new Subcuenta();
         if (
             $existingSubcuenta->loadFromCode('', [
             new DataBaseWhere('codsubcuenta', $codsubcuenta),
-            new DataBaseWhere('codejercicio', $cuenta->codejercicio),
+            new DataBaseWhere('codejercicio', $targetCodejercicio),
             ])
         ) {
             $this->response->setStatusCode(400);
@@ -840,10 +874,10 @@ class QuickCreateAction extends Controller
         // Create subcuenta
         $subcuenta = new Subcuenta();
         $subcuenta->codsubcuenta = $codsubcuenta;
-        $subcuenta->descripcion = $descripcion ?: $cuenta->descripcion;
-        $subcuenta->codcuenta = $cuenta->codcuenta;
-        $subcuenta->codejercicio = $cuenta->codejercicio;
-        $subcuenta->idcuenta = $cuenta->idcuenta;
+        $subcuenta->descripcion = $descripcion ?: $cuentaInEjercicio->descripcion;
+        $subcuenta->codcuenta = $cuentaInEjercicio->codcuenta;
+        $subcuenta->codejercicio = $targetCodejercicio;
+        $subcuenta->idcuenta = $cuentaInEjercicio->idcuenta;
 
         if (false === $subcuenta->save()) {
             $this->response->setStatusCode(500);
@@ -861,6 +895,7 @@ class QuickCreateAction extends Controller
                 'codsubcuenta' => $subcuenta->codsubcuenta,
                 'idsubcuenta' => $subcuenta->idsubcuenta,
                 'descripcion' => $subcuenta->descripcion,
+                'codejercicio' => $subcuenta->codejercicio,
             ],
         ]));
     }
