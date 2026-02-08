@@ -849,8 +849,8 @@ class QuickCreateAction extends Controller
         $cuentaInEjercicio = new Cuenta();
         if (
             false === $cuentaInEjercicio->loadFromCode('', [
-            new DataBaseWhere('codcuenta', $cuenta->codcuenta),
-            new DataBaseWhere('codejercicio', $targetCodejercicio),
+                new DataBaseWhere('codcuenta', $cuenta->codcuenta),
+                new DataBaseWhere('codejercicio', $targetCodejercicio),
             ])
         ) {
             $this->response->setStatusCode(400);
