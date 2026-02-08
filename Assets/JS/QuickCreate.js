@@ -984,6 +984,7 @@
                                         <label for="subcuentaDescripcion" class="form-label">${this.trans('description')} *</label>
                                         <input type="text" class="form-control" id="subcuentaDescripcion" required>
                                     </div>
+                                    <!-- Hidden field for codejercicio, populated dynamically in openSubcuentaModal() -->
                                     <input type="hidden" id="subcuentaCodejercicio" name="codejercicio">
                                 </form>
                             </div>
