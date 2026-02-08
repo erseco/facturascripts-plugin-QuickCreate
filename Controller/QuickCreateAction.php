@@ -799,6 +799,7 @@ class QuickCreateAction extends Controller
         $idcuenta = (int) $this->request->get('idcuenta', 0);
         $codsubcuenta = trim($this->request->get('codsubcuenta', ''));
         $descripcion = trim($this->request->get('descripcion', ''));
+        $codejercicio = trim($this->request->get('codejercicio', ''));
 
         // Validate required fields
         if ($idcuenta <= 0 || empty($codsubcuenta)) {
@@ -821,12 +822,54 @@ class QuickCreateAction extends Controller
             return;
         }
 
-        // Check if subcuenta already exists
+        // If codejercicio was provided, validate it exists
+        if (!empty($codejercicio)) {
+            $ejercicio = new Ejercicio();
+            if (false === $ejercicio->loadFromCode($codejercicio)) {
+                $this->response->setStatusCode(400);
+                $this->response->setContent(json_encode([
+                    'ok' => false,
+                    'message' => Tools::lang()->trans('exercise-not-found'),
+                ]));
+                return;
+            }
+        }
+
+        // Determine which codejercicio to use after validation
+        // Priority: 1. Explicit parameter from request (validated above)
+        //           2. Parent cuenta's exercise (safe fallback when no document context)
+        // Note: Using parent cuenta's exercise is acceptable when:
+        // - Creating from EditAsiento context without document
+        // - Creating standalone subaccounts
+        // The original bug only occurs when creating from within a document (invoice/order)
+        // and the document's exercise should be passed via the request parameter
+        $targetCodejercicio = $codejercicio ?: $cuenta->codejercicio;
+
+        // Find the parent cuenta in the target ejercicio
+        $cuentaInEjercicio = new Cuenta();
+        // loadFromCode signature: loadFromCode($code, $where = [], $orderby = [])
+        // Empty string as first param triggers WHERE-based loading instead of primary key lookup
+        // This allows us to find a cuenta by its natural key (codcuenta + codejercicio)
+        if (
+            false === $cuentaInEjercicio->loadFromCode('', [
+                new DataBaseWhere('codcuenta', $cuenta->codcuenta),
+                new DataBaseWhere('codejercicio', $targetCodejercicio),
+            ])
+        ) {
+            $this->response->setStatusCode(400);
+            $this->response->setContent(json_encode([
+                'ok' => false,
+                'message' => Tools::lang()->trans('parent-account-not-found-in-exercise'),
+            ]));
+            return;
+        }
+
+        // Check if subcuenta already exists in target exercise
         $existingSubcuenta = new Subcuenta();
         if (
             $existingSubcuenta->loadFromCode('', [
             new DataBaseWhere('codsubcuenta', $codsubcuenta),
-            new DataBaseWhere('codejercicio', $cuenta->codejercicio),
+            new DataBaseWhere('codejercicio', $targetCodejercicio),
             ])
         ) {
             $this->response->setStatusCode(400);
@@ -840,10 +883,10 @@ class QuickCreateAction extends Controller
         // Create subcuenta
         $subcuenta = new Subcuenta();
         $subcuenta->codsubcuenta = $codsubcuenta;
-        $subcuenta->descripcion = $descripcion ?: $cuenta->descripcion;
-        $subcuenta->codcuenta = $cuenta->codcuenta;
-        $subcuenta->codejercicio = $cuenta->codejercicio;
-        $subcuenta->idcuenta = $cuenta->idcuenta;
+        $subcuenta->descripcion = $descripcion ?: $cuentaInEjercicio->descripcion;
+        $subcuenta->codcuenta = $cuentaInEjercicio->codcuenta;
+        $subcuenta->codejercicio = $targetCodejercicio;
+        $subcuenta->idcuenta = $cuentaInEjercicio->idcuenta;
 
         if (false === $subcuenta->save()) {
             $this->response->setStatusCode(500);
@@ -861,6 +904,7 @@ class QuickCreateAction extends Controller
                 'codsubcuenta' => $subcuenta->codsubcuenta,
                 'idsubcuenta' => $subcuenta->idsubcuenta,
                 'descripcion' => $subcuenta->descripcion,
+                'codejercicio' => $subcuenta->codejercicio,
             ],
         ]));
     }

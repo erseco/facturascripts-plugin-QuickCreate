@@ -25,6 +25,7 @@
     "no-results": "Sin resultados",
     "parent-account": "Cuenta padre",
     "parent-account-not-found": "No se encontró la cuenta padre. Por favor, crea primero la cuenta padre.",
+    "parent-account-not-found-in-exercise": "No se encontró la cuenta padre en el ejercicio especificado",
     "permission-denied": "Permiso denegado",
     "price": "Precio",
     "prices": "Precios (opcional)",

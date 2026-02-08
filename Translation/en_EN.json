@@ -25,6 +25,7 @@
     "no-results": "No results",
     "parent-account": "Parent account",
     "parent-account-not-found": "Parent account not found. Please create the parent account first.",
+    "parent-account-not-found-in-exercise": "Parent account not found in the specified exercise",
     "permission-denied": "Permission denied",
     "price": "Price",
     "prices": "Prices (optional)",
