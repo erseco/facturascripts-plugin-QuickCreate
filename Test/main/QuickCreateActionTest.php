@@ -955,10 +955,15 @@ class QuickCreateActionTest extends TestCase
         );
 
         // Should search by codcuenta and codejercicio
-        $this->assertMatchesRegularExpression(
-            '/new DataBaseWhere\([\'"]codcuenta[\'"].*\$cuenta->codcuenta/s',
+        $this->assertStringContainsString(
+            "new DataBaseWhere('codcuenta',",
             $controllerFile,
             'createSubcuenta should search cuenta by codcuenta'
+        );
+        $this->assertStringContainsString(
+            '$cuenta->codcuenta',
+            $controllerFile,
+            'createSubcuenta should use parent cuenta code in search'
         );
     }
 

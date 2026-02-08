@@ -928,9 +928,11 @@
             if (codejercicioInput) {
                 const docExerciseInput = document.querySelector('input[name="codejercicio"], select[name="codejercicio"]');
                 if (docExerciseInput?.value) {
+                    // Use document's exercise (from invoice/order being edited)
                     codejercicioInput.value = docExerciseInput.value;
                 } else {
-                    // Fallback to stored exercise info from search
+                    // Fallback to stored exercise info (populated during searchSubcuenta)
+                    // This happens when creating from EditAsiento context
                     codejercicioInput.value = this.exerciseInfo?.codejercicio || '';
                 }
             }
