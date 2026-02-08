@@ -926,6 +926,8 @@
             // Get document's codejercicio if available (from invoice/order context)
             const codejercicioInput = document.getElementById('subcuentaCodejercicio');
             if (codejercicioInput) {
+                // Look for document's exercise field (should be unique in the form)
+                // In FacturaScripts, documents have a single codejercicio field
                 const docExerciseInput = document.querySelector('input[name="codejercicio"], select[name="codejercicio"]');
                 if (docExerciseInput?.value) {
                     // Use document's exercise (from invoice/order being edited)
