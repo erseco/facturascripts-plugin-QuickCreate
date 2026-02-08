@@ -1038,4 +1038,3 @@ class QuickCreateActionTest extends TestCase
         );
     }
 }
-
