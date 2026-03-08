@@ -47,6 +47,8 @@ function trans(key) {
         'price': 'Precio',
         'account-code': 'Codigo subcuenta',
         'account-code-hint': 'Introduce el codigo completo de la subcuenta',
+        'account-created-in-current-exercise': 'La subcuenta se creara en el ejercicio contable actual',
+        'account-created-in-exercise': 'La subcuenta se creara en el ejercicio',
         'cancel': 'Cancelar',
         'save': 'Guardar',
         'saving': 'Guardando...',
@@ -73,6 +75,7 @@ function trans(key) {
         'purchase-data': 'Datos de compra (opcional)',
         'stock-data': 'Stock inicial (opcional)',
         'accounting': 'Contabilidad (opcional)',
+        'exercise': 'Ejercicio',
         'sale-price': 'Precio venta',
         'no-stock-control': 'No controlar stock',
         'allow-sale-without-stock': 'Permitir venta sin stock',
@@ -98,7 +101,7 @@ function transformCodsubcuenta(code, longsubcuenta) {
     longsubcuenta = longsubcuenta || 10;
     const parts = code.split('.');
 
-    if (parts.length !== 2) return code;
+    if (parts.length !== 2 || !parts[1]) return code;
 
     const prefix = parts[0];
     const suffix = parts[1];

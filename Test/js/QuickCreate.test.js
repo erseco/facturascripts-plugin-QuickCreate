@@ -158,6 +158,14 @@ describe('trans', () => {
         assert.strictEqual(trans('stock-data'), 'Stock inicial (opcional)');
     });
 
+    test('returns translation for exercise key', () => {
+        assert.strictEqual(trans('exercise'), 'Ejercicio');
+    });
+
+    test('returns translation for account-created-in-exercise key', () => {
+        assert.strictEqual(trans('account-created-in-exercise'), 'La subcuenta se creara en el ejercicio');
+    });
+
     test('returns translation for accounting key', () => {
         assert.strictEqual(trans('accounting'), 'Contabilidad (opcional)');
     });
@@ -195,6 +203,10 @@ describe('transformCodsubcuenta', () => {
 
     test('transforms 570.1 with length 10', () => {
         assert.strictEqual(transformCodsubcuenta('570.1', 10), '5700000001');
+    });
+
+    test('returns original code for trailing dot notation', () => {
+        assert.strictEqual(transformCodsubcuenta('570.', 10), '570.');
     });
 
     test('transforms 43.1 with length 6', () => {

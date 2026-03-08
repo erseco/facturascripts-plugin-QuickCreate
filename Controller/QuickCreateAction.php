@@ -373,6 +373,7 @@ class QuickCreateAction extends Controller
                 'codsubcuenta' => $subcuenta->codsubcuenta,
                 'idsubcuenta' => $subcuenta->idsubcuenta,
                 'descripcion' => $subcuenta->descripcion,
+                'codejercicio' => $subcuenta->codejercicio,
             ],
         ]));
     }
