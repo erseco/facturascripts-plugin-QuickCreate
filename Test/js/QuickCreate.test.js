@@ -163,7 +163,7 @@ describe('trans', () => {
     });
 
     test('returns translation for account-created-in-exercise key', () => {
-        assert.strictEqual(trans('account-created-in-exercise'), 'La subcuenta se creara en el ejercicio');
+        assert.strictEqual(trans('account-created-in-exercise'), 'La subcuenta se creará en el ejercicio');
     });
 
     test('returns translation for accounting key', () => {
