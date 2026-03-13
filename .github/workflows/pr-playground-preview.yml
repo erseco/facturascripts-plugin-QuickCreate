@@ -1,0 +1,119 @@
+---
+name: PR Playground Preview
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - edited
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: pr-playground-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Create or update playground preview comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('node:fs');
+            const marker = '<!-- facturascripts-playground-preview -->';
+            const imageUrl = 'https://raw.githubusercontent.com/erseco/facturascripts-playground/main/ogimage.png';
+            const { owner, repo } = context.repo;
+            const pullRequest = context.payload.pull_request;
+
+            if (!pullRequest) {
+              core.setFailed('This workflow only supports pull_request events.');
+              return;
+            }
+
+            function toBase64Url(input) {
+              return Buffer.from(input)
+                .toString('base64')
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=+$/g, '');
+            }
+
+            const headOwner = pullRequest.head.repo.owner.login;
+            const headRepo = pullRequest.head.repo.name;
+            const headRef = pullRequest.head.ref;
+            const pluginZipUrl = `https://github.com/${headOwner}/${headRepo}/archive/refs/heads/${headRef}.zip`;
+            const blueprintPath = 'blueprint.json';
+            const blueprint = JSON.parse(fs.readFileSync(blueprintPath, 'utf8'));
+
+            if (!Array.isArray(blueprint.plugins) || blueprint.plugins.length === 0) {
+              core.setFailed(`Expected at least one plugin entry in ${blueprintPath}.`);
+              return;
+            }
+
+            const originalPluginUrl = String(blueprint.plugins[0]);
+            const updatedPluginUrl = originalPluginUrl.replace(
+              /https:\/\/github\.com\/[^/]+\/[^/]+\/archive\/refs\/heads\/.+\.zip$/,
+              pluginZipUrl
+            );
+
+            if (updatedPluginUrl === originalPluginUrl) {
+              core.setFailed(`Could not replace plugin ZIP URL from ${blueprintPath}.`);
+              return;
+            }
+
+            blueprint.plugins[0] = updatedPluginUrl;
+            const encodedBlueprint = toBase64Url(JSON.stringify(blueprint));
+            const previewUrl = `https://erseco.github.io/facturascripts-playground/?blueprint-data=${encodedBlueprint}`;
+            const body = [
+              marker,
+              '## FacturaScripts Playground Preview',
+              '',
+              `<a href="${previewUrl}">`,
+              `  <img src="${imageUrl}" alt="Open this PR in FacturaScripts Playground" width="220">`,
+              '</a><br>',
+              `<small><a href="${previewUrl}">Try this PR in your browser</a></small>`,
+              '',
+              'This preview loads the plugin directly from the PR branch ZIP in FacturaScripts Playground.',
+            ].join('\n');
+
+            const comments = await github.paginate(
+              github.rest.issues.listComments,
+              {
+                owner,
+                repo,
+                issue_number: pullRequest.number,
+                per_page: 100,
+              }
+            );
+
+            const existingComment = comments.find((comment) => comment.body.includes(marker));
+
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existingComment.id,
+                body,
+              });
+              core.info(`Updated existing preview comment: ${existingComment.id}`);
+              return;
+            }
+
+            const createdComment = await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: pullRequest.number,
+              body,
+            });
+
+            core.info(`Created preview comment: ${createdComment.data.id}`);

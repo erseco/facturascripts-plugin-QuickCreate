@@ -1,0 +1,23 @@
+{
+  "meta": {
+    "title": "QuickCreate",
+    "author": "erseco",
+    "description": "Run QuickCreate in FacturaScripts Playground with the plugin manager ready to enable and inspect the plugin. Demo login: admin/admin."
+  },
+  "debug": {
+    "enabled": true
+  },
+  "landingPage": "/AdminPlugins",
+  "siteOptions": {
+    "title": "QuickCreate Playground",
+    "locale": "es_ES",
+    "timezone": "Europe/Madrid"
+  },
+  "login": {
+    "username": "admin",
+    "password": "admin"
+  },
+  "plugins": [
+    "https://github.com/erseco/facturascripts-plugin-QuickCreate/archive/refs/heads/main.zip"
+  ]
+}

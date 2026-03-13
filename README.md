@@ -1,5 +1,10 @@
 # QuickCreate para FacturaScripts
 
+<a href="https://erseco.github.io/facturascripts-playground/?blueprint=https%3A%2F%2Fraw.githubusercontent.com%2Ferseco%2Ffacturascripts-plugin-QuickCreate%2Frefs%2Fheads%2Fmain%2Fblueprint.json">
+  <img src="https://raw.githubusercontent.com/erseco/facturascripts-playground/main/ogimage.png" alt="Try QuickCreate in your browser" width="220">
+</a><br>
+<small><a href="https://erseco.github.io/facturascripts-playground/?blueprint=https%3A%2F%2Fraw.githubusercontent.com%2Ferseco%2Ffacturascripts-plugin-QuickCreate%2Frefs%2Fheads%2Fmain%2Fblueprint.json">Try in your browser</a></small>
+
 Plugin que permite crear productos y subcuentas contables de forma rápida sin salir del documento que estás editando.
 
 ## Creación rápida de productos
