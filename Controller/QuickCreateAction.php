@@ -126,6 +126,7 @@ class QuickCreateAction extends Controller
         $nostock = $this->request->get('nostock', '') === 'TRUE';
         $ventasinstock = $this->request->get('ventasinstock', '') === 'TRUE';
         $publico = $this->request->get('publico', '') === 'TRUE';
+        $codbarras = $this->request->get('codbarras', '');
 
         // Validate required fields
         if (empty($referencia)) {
@@ -191,9 +192,9 @@ class QuickCreateAction extends Controller
             return;
         }
 
-        // Get the auto-created variante
         $variante = new Variante();
         $variante->loadFromCode('', [new DataBaseWhere('idproducto', $producto->idproducto)]);
+        $variante->codbarras = $codbarras;
 
         // Update variante with precio, coste and margen
         $codproveedor = $this->request->get('codproveedor', '');
