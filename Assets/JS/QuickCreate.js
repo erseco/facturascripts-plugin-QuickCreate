@@ -1252,6 +1252,12 @@
                                             <!-- Family select will be injected here -->
                                         </div>
                                     </div>
+                                    <div class="row mb-3">
+                                        <div class="col-md-3">
+                                            <label for="quickCreateProductBarcode" class="form-label">${this.trans('barcode')}</label>
+                                            <input type="text" class="form-control" id="quickCreateProductBarcode" name="codbarras">
+                                        </div>
+                                    </div>
                                     <div id="quickCreateProductDynamicFields"></div>
                                     <div id="quickCreateProductPurchaseFields"></div>
                                     <div id="quickCreateProductStockFields"></div>
@@ -1839,6 +1845,7 @@
             // Fallback translations
             const fallback = {
                 'quick-create-product': 'Crear producto',
+                'barcode': 'Código de barras',
                 'quick-create-account': 'Crear subcuenta',
                 'create-subcuenta': 'Crear subcuenta',
                 'create-subaccount-code': 'Crear subcuenta',

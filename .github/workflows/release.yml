@@ -4,8 +4,13 @@ name: Release
 on:
   push:
     tags:
-      - '[0-9]+'     # Matches: 1, 2, 3, 10, 100, etc.
-      - '[0-9]+.[0-9]+'  # Matches: 1.1, 2.0, etc. (for backward compatibility)
+      # FacturaScripts only accepts integer or single-decimal versions
+      # (e.g. 7 or 7.1). Triple-dot (1.0.1) and pre-release (1.0-beta)
+      # tags are intentionally NOT matched.
+      - '[0-9]+'
+      - '[0-9]+.[0-9]+'
+      - 'v[0-9]+'
+      - 'v[0-9]+.[0-9]+'
 
 permissions:
   contents: write
@@ -19,7 +24,7 @@ jobs:
 
       - name: Get version from tag
         id: version
-        run: echo "VERSION=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
 
       - name: Update version in facturascripts.ini
         run: sed -i "s/^version.*/version = ${{ steps.version.outputs.VERSION }}/" facturascripts.ini
@@ -35,7 +40,17 @@ jobs:
           git archive --format=zip --prefix=QuickCreate/ HEAD -o QuickCreate-${{ steps.version.outputs.VERSION }}.zip
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: QuickCreate-${{ steps.version.outputs.VERSION }}.zip
           generate_release_notes: true
+
+      - name: Publish to FacturaScripts forja
+        uses: erseco/action-facturascripts-publicar-forja@v1
+        with:
+          plugin-slug: quickcreate
+          zip-path: QuickCreate-${{ steps.version.outputs.VERSION }}.zip
+          version: ${{ steps.version.outputs.VERSION }}
+          status: stable
+          forja-user: ${{ secrets.FS_FORJA_USER }}
+          forja-password: ${{ secrets.FS_FORJA_PASSWORD }}
