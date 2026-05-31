@@ -730,6 +730,7 @@
             // Handle input with debounce
             input.addEventListener('input', function () {
                 clearTimeout(self.subcuentaSearchTimeout);
+                this.value = self.transformCodsubcuenta(this.value);
                 const query = this.value.trim();
 
                 if (query.length < 2) {
@@ -812,14 +813,37 @@
         },
 
         transformCodsubcuenta: function (code) {
-            if (!code || code.indexOf('.') === -1) return code.trim();
+            if (!code) return '';
+            code = code.trim();
+            if (code.indexOf('.') === -1) return code;
+
             const longsubcuenta = this.exerciseInfo?.longsubcuenta || 10;
-            const parts = code.trim().split('.');
-            if (parts.length === 2) {
-                const paddingLength = longsubcuenta - parts[1].length;
-                return parts[0].padEnd(paddingLength, '0') + parts[1];
+            const parts = code.split('.');
+            if (parts.length !== 2 || !parts[1]) return code;
+
+            const prefix = parts[0];
+            const suffix = parts[1];
+            const paddingLength = longsubcuenta - prefix.length - suffix.length;
+            if (paddingLength < 0) return code;
+
+            return prefix.padEnd(longsubcuenta - suffix.length, '0') + suffix;
+        },
+
+        updateAccountLocationInfo: function (elementId, codejercicio) {
+            const info = document.getElementById(elementId);
+            if (!info) return;
+
+            info.textContent = codejercicio ?
+                `${this.trans('account-created-in-exercise')} ${codejercicio}.` :
+                `${this.trans('account-created-in-current-exercise')}.`;
+        },
+
+        buildAccountCreatedMessage: function (message, data) {
+            if (!data?.codsubcuenta || !data?.codejercicio) {
+                return message;
             }
-            return code.trim();
+
+            return `${message}: ${data.codsubcuenta} (${this.trans('exercise')}: ${data.codejercicio})`;
         },
 
         searchSubcuenta: function (query, dropdown, input) {
@@ -948,6 +972,11 @@
                 }
             }
 
+            this.updateAccountLocationInfo(
+                'quickCreateSubcuentaLocationInfo',
+                codejercicioInput ? codejercicioInput.value : ''
+            );
+
             // Load cuentas based on prefix (this may trigger onCuentaPadreChange)
             this.loadCuentasForModal(prefixQuery);
 
@@ -968,6 +997,7 @@
                             </div>
                             <div class="modal-body">
                                 <div class="alert alert-danger d-none" id="quickCreateSubcuentaError"></div>
+                                <div class="alert alert-info py-2" id="quickCreateSubcuentaLocationInfo"></div>
                                 <form id="quickCreateSubcuentaForm">
                                     <div class="mb-3">
                                         <label for="subcuentaCuentaPadre" class="form-label">${this.trans('parent-account')} *</label>
@@ -1169,7 +1199,7 @@
                             }
                         }
                         this.subcuentaModal.hide();
-                        this.showNotification('success', data.message);
+                        this.showNotification('success', this.buildAccountCreatedMessage(data.message, data.data));
                     } else {
                         errorDiv.textContent = data.message;
                         errorDiv.classList.remove('d-none');
@@ -1301,6 +1331,7 @@
                             </div>
                             <div class="modal-body">
                                 <div class="alert alert-danger d-none" id="quickCreateAccountError"></div>
+                                <div class="alert alert-info py-2" id="quickCreateAccountLocationInfo"></div>
                                 <form id="quickCreateAccountForm">
                                     <div class="mb-3">
                                         <label for="quickCreateAccountCode" class="form-label">${this.trans('account-code')} *</label>
@@ -1349,6 +1380,11 @@
             if (exerciseInput) {
                 document.getElementById('quickCreateAccountExercise').value = exerciseInput.value;
             }
+
+            this.updateAccountLocationInfo(
+                'quickCreateAccountLocationInfo',
+                document.getElementById('quickCreateAccountExercise').value
+            );
 
             // Pre-fill code if input has value
             const currentValue = targetInput.value;
@@ -1440,7 +1476,7 @@
                     if (data.ok) {
                         this.updateAutocompleteField(this.currentTargetField, data.data.codsubcuenta, data.data.descripcion);
                         this.accountModal.hide();
-                        this.showNotification('success', data.message);
+                        this.showNotification('success', this.buildAccountCreatedMessage(data.message, data.data));
                     } else {
                         errorDiv.textContent = data.message;
                         errorDiv.classList.remove('d-none');
@@ -1846,6 +1882,9 @@
                 'purchase-data': 'Datos de compra (opcional)',
                 'stock-data': 'Stock inicial (opcional)',
                 'accounting-section': 'Contabilidad (opcional)',
+                'account-created-in-exercise': 'La subcuenta se creará en el ejercicio',
+                'account-created-in-current-exercise': 'La subcuenta se creará en el ejercicio contable actual',
+                'exercise': 'Ejercicio',
                 'sale-price': 'Precio venta',
                 'no-stock-control': 'No controlar stock',
                 'allow-sale-without-stock': 'Permitir venta sin stock',
