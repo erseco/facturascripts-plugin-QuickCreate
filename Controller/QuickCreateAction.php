@@ -21,7 +21,7 @@
 namespace FacturaScripts\Plugins\QuickCreate\Controller;
 
 use FacturaScripts\Core\Base\Controller;
-use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
+use FacturaScripts\Core\Where;
 use FacturaScripts\Core\Lib\RegimenIVA;
 use FacturaScripts\Core\Tools;
 use FacturaScripts\Dinamic\Model\Almacen;
@@ -94,7 +94,7 @@ class QuickCreateAction extends Controller
                 break;
 
             default:
-                $this->response->setStatusCode(400);
+                $this->response->setHttpCode(400);
                 $this->response->setContent(json_encode([
                     'ok' => false,
                     'message' => Tools::lang()->trans('invalid-action'),
@@ -106,7 +106,7 @@ class QuickCreateAction extends Controller
     {
         // Check permission
         if (false === $this->user->can('EditProducto')) {
-            $this->response->setStatusCode(403);
+            $this->response->setHttpCode(403);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('permission-denied'),
@@ -130,7 +130,7 @@ class QuickCreateAction extends Controller
 
         // Validate required fields
         if (empty($referencia)) {
-            $this->response->setStatusCode(400);
+            $this->response->setHttpCode(400);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('reference-required'),
@@ -140,8 +140,8 @@ class QuickCreateAction extends Controller
 
         // Check if product already exists
         $variante = new Variante();
-        if ($variante->loadFromCode('', [new DataBaseWhere('referencia', $referencia)])) {
-            $this->response->setStatusCode(400);
+        if ($variante->loadWhere([new Where('referencia', $referencia)])) {
+            $this->response->setHttpCode(400);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('reference-already-exists'),
@@ -184,7 +184,7 @@ class QuickCreateAction extends Controller
         }
 
         if (false === $producto->save()) {
-            $this->response->setStatusCode(500);
+            $this->response->setHttpCode(500);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('product-creation-error'),
@@ -193,7 +193,7 @@ class QuickCreateAction extends Controller
         }
 
         $variante = new Variante();
-        $variante->loadFromCode('', [new DataBaseWhere('idproducto', $producto->idproducto)]);
+        $variante->loadWhere([new Where('idproducto', $producto->idproducto)]);
         $variante->codbarras = $codbarras;
 
         // Update variante with precio, coste and margen
@@ -260,7 +260,7 @@ class QuickCreateAction extends Controller
     {
         // Check permission
         if (false === $this->user->can('EditCuenta')) {
-            $this->response->setStatusCode(403);
+            $this->response->setHttpCode(403);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('permission-denied'),
@@ -274,7 +274,7 @@ class QuickCreateAction extends Controller
 
         // Validate required fields
         if (empty($codsubcuenta) || empty($codejercicio)) {
-            $this->response->setStatusCode(400);
+            $this->response->setHttpCode(400);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('account-code-required'),
@@ -284,8 +284,8 @@ class QuickCreateAction extends Controller
 
         // Load ejercicio to get required code length
         $ejercicio = new Ejercicio();
-        if (false === $ejercicio->loadFromCode($codejercicio)) {
-            $this->response->setStatusCode(400);
+        if (false === $ejercicio->load($codejercicio)) {
+            $this->response->setHttpCode(400);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('exercise-not-found'),
@@ -295,7 +295,7 @@ class QuickCreateAction extends Controller
 
         // Validate code length
         if (strlen($codsubcuenta) !== $ejercicio->longsubcuenta) {
-            $this->response->setStatusCode(400);
+            $this->response->setHttpCode(400);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans(
@@ -309,12 +309,12 @@ class QuickCreateAction extends Controller
         // Check if subcuenta already exists
         $existingSubcuenta = new Subcuenta();
         if (
-            $existingSubcuenta->loadFromCode('', [
-            new DataBaseWhere('codsubcuenta', $codsubcuenta),
-            new DataBaseWhere('codejercicio', $codejercicio),
+            $existingSubcuenta->loadWhere([
+            new Where('codsubcuenta', $codsubcuenta),
+            new Where('codejercicio', $codejercicio),
             ])
         ) {
-            $this->response->setStatusCode(400);
+            $this->response->setHttpCode(400);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('account-already-exists'),
@@ -330,9 +330,9 @@ class QuickCreateAction extends Controller
         // Try progressively shorter codes to find parent
         while (strlen($codcuenta) >= 1) {
             if (
-                $cuenta->loadFromCode('', [
-                new DataBaseWhere('codcuenta', $codcuenta),
-                new DataBaseWhere('codejercicio', $codejercicio),
+                $cuenta->loadWhere([
+                new Where('codcuenta', $codcuenta),
+                new Where('codejercicio', $codejercicio),
                 ])
             ) {
                 $parentFound = true;
@@ -342,7 +342,7 @@ class QuickCreateAction extends Controller
         }
 
         if (false === $parentFound) {
-            $this->response->setStatusCode(400);
+            $this->response->setHttpCode(400);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('parent-account-not-found'),
@@ -359,7 +359,7 @@ class QuickCreateAction extends Controller
         $subcuenta->idcuenta = $cuenta->idcuenta;
 
         if (false === $subcuenta->save()) {
-            $this->response->setStatusCode(500);
+            $this->response->setHttpCode(500);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('account-creation-error'),
@@ -383,7 +383,7 @@ class QuickCreateAction extends Controller
     {
         // Check permission
         if (false === $this->user->can('EditProducto')) {
-            $this->response->setStatusCode(403);
+            $this->response->setHttpCode(403);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('permission-denied'),
@@ -471,7 +471,7 @@ class QuickCreateAction extends Controller
     {
         // Check permission
         if (false === $this->user->can('EditProducto')) {
-            $this->response->setStatusCode(403);
+            $this->response->setHttpCode(403);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('permission-denied'),
@@ -490,7 +490,7 @@ class QuickCreateAction extends Controller
 
         // Get current exercise
         $ejercicio = new Ejercicio();
-        $ejercicio->loadFromCode('', [new DataBaseWhere('estado', 'ABIERTO')]);
+        $ejercicio->loadWhere([new Where('estado', 'ABIERTO')]);
         if (empty($ejercicio->codejercicio)) {
             $this->response->setContent(json_encode([
                 'ok' => true,
@@ -505,15 +505,15 @@ class QuickCreateAction extends Controller
         // Search subcuentas
         $subcuenta = new Subcuenta();
         $where = [
-            new DataBaseWhere('codejercicio', $ejercicio->codejercicio),
+            new Where('codejercicio', $ejercicio->codejercicio),
         ];
 
         // Search by code or description
         $whereCode = array_merge($where, [
-            new DataBaseWhere('codsubcuenta', $transformedQuery . '%', 'LIKE'),
+            new Where('codsubcuenta', $transformedQuery . '%', 'LIKE'),
         ]);
         $whereDesc = array_merge($where, [
-            new DataBaseWhere('descripcion', '%' . $query . '%', 'LIKE'),
+            new Where('descripcion', '%' . $query . '%', 'LIKE'),
         ]);
 
         $results = [];
@@ -595,10 +595,10 @@ class QuickCreateAction extends Controller
         // Check if parent cuenta exists
         $cuenta = new Cuenta();
         $where = [
-            new DataBaseWhere('codcuenta', $prefix),
-            new DataBaseWhere('codejercicio', $ejercicio->codejercicio),
+            new Where('codcuenta', $prefix),
+            new Where('codejercicio', $ejercicio->codejercicio),
         ];
-        if (false === $cuenta->loadFromCode('', $where)) {
+        if (false === $cuenta->loadWhere($where)) {
             return '';
         }
 
@@ -608,10 +608,10 @@ class QuickCreateAction extends Controller
         // Check if this subcuenta already exists
         $subcuenta = new Subcuenta();
         $whereSubcuenta = [
-            new DataBaseWhere('codsubcuenta', $transformedCode),
-            new DataBaseWhere('codejercicio', $ejercicio->codejercicio),
+            new Where('codsubcuenta', $transformedCode),
+            new Where('codejercicio', $ejercicio->codejercicio),
         ];
-        if ($subcuenta->loadFromCode('', $whereSubcuenta)) {
+        if ($subcuenta->loadWhere($whereSubcuenta)) {
             // Already exists, don't suggest it
             return '';
         }
@@ -622,17 +622,17 @@ class QuickCreateAction extends Controller
     protected function getNextFreeSubcuentaCode(string $prefix, string $codejercicio): string
     {
         $ejercicio = new Ejercicio();
-        if (false === $ejercicio->loadFromCode($codejercicio)) {
+        if (false === $ejercicio->load($codejercicio)) {
             return '';
         }
 
         // Find parent cuenta
         $cuenta = new Cuenta();
         $where = [
-            new DataBaseWhere('codcuenta', $prefix),
-            new DataBaseWhere('codejercicio', $codejercicio),
+            new Where('codcuenta', $prefix),
+            new Where('codejercicio', $codejercicio),
         ];
-        if (false === $cuenta->loadFromCode('', $where)) {
+        if (false === $cuenta->loadWhere($where)) {
             return '';
         }
 
@@ -644,10 +644,10 @@ class QuickCreateAction extends Controller
             $newCode = $paddedPrefix . $suffix;
 
             $where = [
-                new DataBaseWhere('codsubcuenta', $newCode),
-                new DataBaseWhere('codejercicio', $codejercicio),
+                new Where('codsubcuenta', $newCode),
+                new Where('codejercicio', $codejercicio),
             ];
-            if (false === $subcuenta->loadFromCode('', $where)) {
+            if (false === $subcuenta->loadWhere($where)) {
                 return $newCode;
             }
         }
@@ -659,7 +659,7 @@ class QuickCreateAction extends Controller
     {
         // Check permission
         if (false === $this->user->can('EditProducto')) {
-            $this->response->setStatusCode(403);
+            $this->response->setHttpCode(403);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('permission-denied'),
@@ -669,10 +669,10 @@ class QuickCreateAction extends Controller
 
         // Get current open exercise
         $ejercicio = new Ejercicio();
-        $ejercicio->loadFromCode('', [new DataBaseWhere('estado', 'ABIERTO')]);
+        $ejercicio->loadWhere([new Where('estado', 'ABIERTO')]);
 
         if (empty($ejercicio->codejercicio)) {
-            $this->response->setStatusCode(404);
+            $this->response->setHttpCode(404);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('exercise-not-found'),
@@ -694,7 +694,7 @@ class QuickCreateAction extends Controller
     {
         // Check permission
         if (false === $this->user->can('EditCuenta')) {
-            $this->response->setStatusCode(403);
+            $this->response->setHttpCode(403);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('permission-denied'),
@@ -706,7 +706,7 @@ class QuickCreateAction extends Controller
 
         // Get current exercise
         $ejercicio = new Ejercicio();
-        $ejercicio->loadFromCode('', [new DataBaseWhere('estado', 'ABIERTO')]);
+        $ejercicio->loadWhere([new Where('estado', 'ABIERTO')]);
         if (empty($ejercicio->codejercicio)) {
             $this->response->setContent(json_encode([
                 'ok' => true,
@@ -718,12 +718,14 @@ class QuickCreateAction extends Controller
         // Search cuentas
         $cuenta = new Cuenta();
         $where = [
-            new DataBaseWhere('codejercicio', $ejercicio->codejercicio),
+            new Where('codejercicio', $ejercicio->codejercicio),
         ];
 
         if (!empty($query)) {
-            $where[] = new DataBaseWhere('codcuenta', $query . '%', 'LIKE', 'AND');
-            $where[] = new DataBaseWhere('descripcion', '%' . $query . '%', 'LIKE', 'OR');
+            $where[] = Where::sub([
+                Where::like('codcuenta', $query . '%'),
+                Where::orLike('descripcion', '%' . $query . '%'),
+            ]);
         }
 
         $results = [];
@@ -746,7 +748,7 @@ class QuickCreateAction extends Controller
     {
         // Check permission
         if (false === $this->user->can('EditCuenta')) {
-            $this->response->setStatusCode(403);
+            $this->response->setHttpCode(403);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('permission-denied'),
@@ -758,7 +760,7 @@ class QuickCreateAction extends Controller
         $codejercicio = trim($this->request->get('codejercicio', ''));
 
         if ($idcuenta <= 0) {
-            $this->response->setStatusCode(400);
+            $this->response->setHttpCode(400);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('parent-account-not-found'),
@@ -767,8 +769,8 @@ class QuickCreateAction extends Controller
         }
 
         $cuenta = new Cuenta();
-        if (false === $cuenta->loadFromCode($idcuenta)) {
-            $this->response->setStatusCode(404);
+        if (false === $cuenta->load($idcuenta)) {
+            $this->response->setHttpCode(404);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('parent-account-not-found'),
@@ -782,8 +784,8 @@ class QuickCreateAction extends Controller
         // Validate that the target exercise exists
         if (!empty($codejercicio)) {
             $ejercicio = new Ejercicio();
-            if (false === $ejercicio->loadFromCode($codejercicio)) {
-                $this->response->setStatusCode(400);
+            if (false === $ejercicio->load($codejercicio)) {
+                $this->response->setHttpCode(400);
                 $this->response->setContent(json_encode([
                     'ok' => false,
                     'message' => Tools::lang()->trans('exercise-not-found'),
@@ -810,7 +812,7 @@ class QuickCreateAction extends Controller
     {
         // Check permission
         if (false === $this->user->can('EditCuenta')) {
-            $this->response->setStatusCode(403);
+            $this->response->setHttpCode(403);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('permission-denied'),
@@ -825,7 +827,7 @@ class QuickCreateAction extends Controller
 
         // Validate required fields
         if ($idcuenta <= 0 || empty($codsubcuenta)) {
-            $this->response->setStatusCode(400);
+            $this->response->setHttpCode(400);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('account-code-required'),
@@ -835,8 +837,8 @@ class QuickCreateAction extends Controller
 
         // Load parent cuenta
         $cuenta = new Cuenta();
-        if (false === $cuenta->loadFromCode($idcuenta)) {
-            $this->response->setStatusCode(404);
+        if (false === $cuenta->load($idcuenta)) {
+            $this->response->setHttpCode(404);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('parent-account-not-found'),
@@ -847,8 +849,8 @@ class QuickCreateAction extends Controller
         // If codejercicio was provided, validate it exists
         if (!empty($codejercicio)) {
             $ejercicio = new Ejercicio();
-            if (false === $ejercicio->loadFromCode($codejercicio)) {
-                $this->response->setStatusCode(400);
+            if (false === $ejercicio->load($codejercicio)) {
+                $this->response->setHttpCode(400);
                 $this->response->setContent(json_encode([
                     'ok' => false,
                     'message' => Tools::lang()->trans('exercise-not-found'),
@@ -869,16 +871,14 @@ class QuickCreateAction extends Controller
 
         // Find the parent cuenta in the target ejercicio
         $cuentaInEjercicio = new Cuenta();
-        // loadFromCode signature: loadFromCode($code, $where = [], $orderby = [])
-        // Empty string as first param triggers WHERE-based loading instead of primary key lookup
-        // This allows us to find a cuenta by its natural key (codcuenta + codejercicio)
+        // Find the account by its natural key (codcuenta + codejercicio).
         if (
-            false === $cuentaInEjercicio->loadFromCode('', [
-                new DataBaseWhere('codcuenta', $cuenta->codcuenta),
-                new DataBaseWhere('codejercicio', $targetCodejercicio),
+            false === $cuentaInEjercicio->loadWhere([
+                new Where('codcuenta', $cuenta->codcuenta),
+                new Where('codejercicio', $targetCodejercicio),
             ])
         ) {
-            $this->response->setStatusCode(400);
+            $this->response->setHttpCode(400);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('parent-account-not-found-in-exercise'),
@@ -889,12 +889,12 @@ class QuickCreateAction extends Controller
         // Check if subcuenta already exists in target exercise
         $existingSubcuenta = new Subcuenta();
         if (
-            $existingSubcuenta->loadFromCode('', [
-            new DataBaseWhere('codsubcuenta', $codsubcuenta),
-            new DataBaseWhere('codejercicio', $targetCodejercicio),
+            $existingSubcuenta->loadWhere([
+            new Where('codsubcuenta', $codsubcuenta),
+            new Where('codejercicio', $targetCodejercicio),
             ])
         ) {
-            $this->response->setStatusCode(400);
+            $this->response->setHttpCode(400);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('account-already-exists'),
@@ -911,7 +911,7 @@ class QuickCreateAction extends Controller
         $subcuenta->idcuenta = $cuentaInEjercicio->idcuenta;
 
         if (false === $subcuenta->save()) {
-            $this->response->setStatusCode(500);
+            $this->response->setHttpCode(500);
             $this->response->setContent(json_encode([
                 'ok' => false,
                 'message' => Tools::lang()->trans('account-creation-error'),
