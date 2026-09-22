@@ -162,9 +162,16 @@ final class QuickCreateFlowTest extends TestCase
     {
         $warehouses = Almacen::all();
         self::assertNotEmpty($warehouses);
+        $tax = new Impuesto();
+        $tax->codimpuesto = 'Q' . substr(uniqid(), -6);
+        $tax->descripcion = 'Stock fixture tax';
+        $tax->iva = 0;
+        self::assertTrue($tax->save());
+        $this->cleanup[] = $tax;
         foreach ([0, 5] as $cost) {
             $result = $this->call('create-product', [
                 'referencia' => uniqid('QCS-'), 'descripcion' => 'Stock fixture', 'precio' => '15',
+                'codimpuesto' => $tax->codimpuesto,
                 'stock' => '3', 'codalmacen' => $warehouses[0]->codalmacen, 'preciocompra' => (string)$cost,
             ]);
             self::assertTrue($result['ok']);
@@ -273,7 +280,11 @@ final class QuickCreateFlowTest extends TestCase
         $permissions->allowAccess = true;
         $controller->privateCore($response, $user, $permissions);
         $result = json_decode($response->getContent(), true, 512, JSON_THROW_ON_ERROR);
-        self::assertSame($status, $response->getHttpCode(), json_encode($result));
+        self::assertSame(
+            $status,
+            $response->getHttpCode(),
+            json_encode([$result, Tools::log()->read('', ['error', 'warning'])])
+        );
         return $result;
     }
 }
