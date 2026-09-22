@@ -102,7 +102,7 @@ class QuickCreateTraitTest extends TestCase
 
     public function testCreateViewsReturnsClosure(): void
     {
-        $mockClass = new class {
+        $mockClass = new class () {
             use QuickCreateTrait;
         };
 
@@ -117,7 +117,7 @@ class QuickCreateTraitTest extends TestCase
 
     public function testCreateViewsReturnsCallableClosure(): void
     {
-        $mockClass = new class {
+        $mockClass = new class () {
             use QuickCreateTrait;
         };
 
@@ -131,7 +131,7 @@ class QuickCreateTraitTest extends TestCase
 
     public function testMultipleCallsReturnDifferentClosures(): void
     {
-        $mockClass = new class {
+        $mockClass = new class () {
             use QuickCreateTrait;
         };
 
@@ -198,7 +198,7 @@ class QuickCreateTraitTest extends TestCase
 
     public function testTraitCanBeUsedInAnonymousClass(): void
     {
-        $anonymous = new class {
+        $anonymous = new class () {
             use QuickCreateTrait;
         };
 

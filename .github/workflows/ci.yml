@@ -168,6 +168,8 @@ jobs:
           if [ -d "plugin/Test/main" ]; then
             cp -r plugin/Test/main/* facturascripts/Test/Plugins/
           fi
+          cp plugin/Test/bootstrap.php facturascripts/Test/bootstrap.php
+          cp plugin/Test/install-plugins.php facturascripts/Test/install-plugins.php
 
       - name: Install test dependencies
         working-directory: facturascripts
@@ -199,7 +201,8 @@ jobs:
         uses: codecov/codecov-action@v7
         with:
           use_oidc: true
-          files: facturascripts/coverage.xml
+          working-directory: plugin
+          files: ../facturascripts/coverage.xml
           disable_search: true
           fail_ci_if_error: true
 

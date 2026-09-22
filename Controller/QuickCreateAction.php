@@ -21,9 +21,9 @@
 namespace FacturaScripts\Plugins\QuickCreate\Controller;
 
 use FacturaScripts\Core\Base\Controller;
-use FacturaScripts\Core\Where;
 use FacturaScripts\Core\Lib\RegimenIVA;
 use FacturaScripts\Core\Tools;
+use FacturaScripts\Core\Where;
 use FacturaScripts\Dinamic\Model\Almacen;
 use FacturaScripts\Dinamic\Model\Cuenta;
 use FacturaScripts\Dinamic\Model\Ejercicio;
@@ -39,6 +39,13 @@ use FacturaScripts\Dinamic\Model\Variante;
 
 class QuickCreateAction extends Controller
 {
+    private function requestValue(string $key, $default = null): ?string
+    {
+        return $this->request->request->has($key)
+            ? $this->request->input($key, $default)
+            : $this->request->query($key, $default);
+    }
+
     public function getPageData(): array
     {
         $data = parent::getPageData();
@@ -58,7 +65,7 @@ class QuickCreateAction extends Controller
         // Set JSON response headers
         $this->response->headers->set('Content-Type', 'application/json');
 
-        $action = $this->request->get('action', '');
+        $action = $this->requestValue('action', '');
 
         switch ($action) {
             case 'create-product':
@@ -114,19 +121,19 @@ class QuickCreateAction extends Controller
             return;
         }
 
-        $referencia = $this->request->get('referencia', '');
-        $descripcion = $this->request->get('descripcion', '');
-        $precio = (float) $this->request->get('precio', 0);
-        $codfamilia = $this->request->get('codfamilia', '');
-        $codfabricante = $this->request->get('codfabricante', '');
-        $codimpuesto = $this->request->get('codimpuesto', '');
-        $excepcioniva = $this->request->get('excepcioniva', '');
-        $codsubcuentacom = $this->request->get('codsubcuentacom', '');
-        $codsubcuentaven = $this->request->get('codsubcuentaven', '');
-        $nostock = $this->request->get('nostock', '') === 'TRUE';
-        $ventasinstock = $this->request->get('ventasinstock', '') === 'TRUE';
-        $publico = $this->request->get('publico', '') === 'TRUE';
-        $codbarras = $this->request->get('codbarras', '');
+        $referencia = $this->requestValue('referencia', '');
+        $descripcion = $this->requestValue('descripcion', '');
+        $precio = (float) $this->requestValue('precio', 0);
+        $codfamilia = $this->requestValue('codfamilia', '');
+        $codfabricante = $this->requestValue('codfabricante', '');
+        $codimpuesto = $this->requestValue('codimpuesto', '');
+        $excepcioniva = $this->requestValue('excepcioniva', '');
+        $codsubcuentacom = $this->requestValue('codsubcuentacom', '');
+        $codsubcuentaven = $this->requestValue('codsubcuentaven', '');
+        $nostock = $this->requestValue('nostock', '') === 'TRUE';
+        $ventasinstock = $this->requestValue('ventasinstock', '') === 'TRUE';
+        $publico = $this->requestValue('publico', '') === 'TRUE';
+        $codbarras = $this->requestValue('codbarras', '');
 
         // Validate required fields
         if (empty($referencia)) {
@@ -197,10 +204,10 @@ class QuickCreateAction extends Controller
         $variante->codbarras = $codbarras;
 
         // Update variante with precio, coste and margen
-        $codproveedor = $this->request->get('codproveedor', '');
-        $preciocompra = (float) $this->request->get('preciocompra', 0);
-        $dtopor = (float) $this->request->get('dtopor', 0);
-        $margen = (float) $this->request->get('margen', 0);
+        $codproveedor = $this->requestValue('codproveedor', '');
+        $preciocompra = (float) $this->requestValue('preciocompra', 0);
+        $dtopor = (float) $this->requestValue('dtopor', 0);
+        $margen = (float) $this->requestValue('margen', 0);
 
         // Set coste (net purchase price after discount)
         if ($preciocompra > 0) {
@@ -232,8 +239,8 @@ class QuickCreateAction extends Controller
         }
 
         // Create Stock if quantity and warehouse are provided
-        $stockQty = (float) $this->request->get('stock', 0);
-        $codalmacen = $this->request->get('codalmacen', '');
+        $stockQty = (float) $this->requestValue('stock', 0);
+        $codalmacen = $this->requestValue('codalmacen', '');
 
         if ($stockQty > 0 && !empty($codalmacen)) {
             $stock = new Stock();
@@ -268,9 +275,9 @@ class QuickCreateAction extends Controller
             return;
         }
 
-        $codsubcuenta = $this->request->get('codsubcuenta', '');
-        $descripcion = $this->request->get('descripcion', '');
-        $codejercicio = $this->request->get('codejercicio', '');
+        $codsubcuenta = $this->requestValue('codsubcuenta', '');
+        $descripcion = $this->requestValue('descripcion', '');
+        $codejercicio = $this->requestValue('codejercicio', '');
 
         // Validate required fields
         if (empty($codsubcuenta) || empty($codejercicio)) {
@@ -479,7 +486,7 @@ class QuickCreateAction extends Controller
             return;
         }
 
-        $query = trim($this->request->get('query', ''));
+        $query = trim($this->requestValue('query', ''));
         if (empty($query)) {
             $this->response->setContent(json_encode([
                 'ok' => true,
@@ -702,7 +709,7 @@ class QuickCreateAction extends Controller
             return;
         }
 
-        $query = trim($this->request->get('query', ''));
+        $query = trim($this->requestValue('query', ''));
 
         // Get current exercise
         $ejercicio = new Ejercicio();
@@ -756,8 +763,8 @@ class QuickCreateAction extends Controller
             return;
         }
 
-        $idcuenta = (int) $this->request->get('idcuenta', 0);
-        $codejercicio = trim($this->request->get('codejercicio', ''));
+        $idcuenta = (int) $this->requestValue('idcuenta', 0);
+        $codejercicio = trim($this->requestValue('codejercicio', ''));
 
         if ($idcuenta <= 0) {
             $this->response->setHttpCode(400);
@@ -820,10 +827,10 @@ class QuickCreateAction extends Controller
             return;
         }
 
-        $idcuenta = (int) $this->request->get('idcuenta', 0);
-        $codsubcuenta = trim($this->request->get('codsubcuenta', ''));
-        $descripcion = trim($this->request->get('descripcion', ''));
-        $codejercicio = trim($this->request->get('codejercicio', ''));
+        $idcuenta = (int) $this->requestValue('idcuenta', 0);
+        $codsubcuenta = trim($this->requestValue('codsubcuenta', ''));
+        $descripcion = trim($this->requestValue('descripcion', ''));
+        $codejercicio = trim($this->requestValue('codejercicio', ''));
 
         // Validate required fields
         if ($idcuenta <= 0 || empty($codsubcuenta)) {

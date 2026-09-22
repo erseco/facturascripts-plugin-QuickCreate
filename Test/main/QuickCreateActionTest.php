@@ -633,17 +633,17 @@ class QuickCreateActionTest extends TestCase
 
         // Check that the method reads supplier-related request parameters
         $this->assertStringContainsString(
-            "->get('codproveedor'",
+            "->requestValue('codproveedor'",
             $controllerFile,
             'createProduct should read codproveedor from request'
         );
         $this->assertStringContainsString(
-            "->get('preciocompra'",
+            "->requestValue('preciocompra'",
             $controllerFile,
             'createProduct should read preciocompra from request'
         );
         $this->assertStringContainsString(
-            "->get('dtopor'",
+            "->requestValue('dtopor'",
             $controllerFile,
             'createProduct should read dtopor (discount) from request'
         );
@@ -659,12 +659,12 @@ class QuickCreateActionTest extends TestCase
 
         // Check that the method reads stock-related request parameters
         $this->assertStringContainsString(
-            "->get('stock'",
+            "->requestValue('stock'",
             $controllerFile,
             'createProduct should read stock quantity from request'
         );
         $this->assertStringContainsString(
-            "->get('codalmacen'",
+            "->requestValue('codalmacen'",
             $controllerFile,
             'createProduct should read codalmacen from request'
         );
@@ -679,12 +679,12 @@ class QuickCreateActionTest extends TestCase
         $controllerFile = file_get_contents($filename);
 
         $this->assertStringContainsString(
-            "->get('nostock'",
+            "->requestValue('nostock'",
             $controllerFile,
             'createProduct should read nostock checkbox from request'
         );
         $this->assertStringContainsString(
-            "->get('ventasinstock'",
+            "->requestValue('ventasinstock'",
             $controllerFile,
             'createProduct should read ventasinstock checkbox from request'
         );
@@ -808,7 +808,7 @@ class QuickCreateActionTest extends TestCase
         $controllerFile = file_get_contents($filename);
 
         $this->assertStringContainsString(
-            "->get('margen'",
+            "->requestValue('margen'",
             $controllerFile,
             'createProduct should read margen from request'
         );
@@ -853,7 +853,7 @@ class QuickCreateActionTest extends TestCase
         $controllerFile = file_get_contents($filename);
 
         $this->assertStringContainsString(
-            "->get('publico'",
+            "->requestValue('publico'",
             $controllerFile,
             'createProduct should read publico checkbox from request'
         );
@@ -910,7 +910,7 @@ class QuickCreateActionTest extends TestCase
         $controllerFile = file_get_contents($filename);
 
         $this->assertStringContainsString(
-            "\$codejercicio = trim(\$this->request->get('codejercicio', ''));",
+            "\$codejercicio = trim(\$this->requestValue('codejercicio', ''));",
             $controllerFile,
             'createSubcuenta should read codejercicio from request'
         );
@@ -956,7 +956,7 @@ class QuickCreateActionTest extends TestCase
 
         // Should search by codcuenta and codejercicio
         $this->assertStringContainsString(
-            "new DataBaseWhere('codcuenta',",
+            "new Where('codcuenta',",
             $controllerFile,
             'createSubcuenta should search cuenta by codcuenta'
         );
@@ -1052,7 +1052,7 @@ class QuickCreateActionTest extends TestCase
 
         // getNextSubcuentaCode should read codejercicio from request
         $this->assertStringContainsString(
-            "\$codejercicio = trim(\$this->request->get('codejercicio', ''));",
+            "\$codejercicio = trim(\$this->requestValue('codejercicio', ''));",
             $controllerFile,
             'getNextSubcuentaCode should read codejercicio from request'
         );
