@@ -42,3 +42,11 @@ $loader->addPsr4('FacturaScripts\\Plugins\\QuickCreate\\', FS_FOLDER . '/Plugins
 
 // Register Dinamic namespace (fallback to Core)
 $loader->addPsr4('FacturaScripts\\Dinamic\\', FS_FOLDER . '/Dinamic');
+
+FacturaScripts\Core\Kernel::init();
+if (!in_array('QuickCreate', FacturaScripts\Core\Plugins::enabled(), true)) {
+    if (!FacturaScripts\Core\Plugins::enable('QuickCreate')) {
+        throw new RuntimeException('Could not enable QuickCreate for testing');
+    }
+}
+FacturaScripts\Core\Plugins::deploy();

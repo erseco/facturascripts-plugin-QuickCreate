@@ -42,3 +42,6 @@
 
 # Translation utilities
 /Translation/updater.php export-ignore
+/phpunit-coverage.xml export-ignore
+/codecov.yml export-ignore
+/coverage.xml export-ignore

@@ -47,3 +47,6 @@ docker-compose.override.yml
 
 # FacturaScripts core (reference only)
 facturascripts/
+
+/coverage.xml
+/.phpunit.cache/

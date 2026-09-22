@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="Test/bootstrap.php" colors="true" failOnWarning="true">
+    <testsuites>
+        <testsuite name="QuickCreate"><directory>Test/Plugins</directory></testsuite>
+    </testsuites>
+    <coverage includeUncoveredFiles="true" processUncoveredFiles="true">
+        <include>
+            <directory suffix=".php">Plugins/QuickCreate/Controller</directory>
+            <directory suffix=".php">Plugins/QuickCreate/Extension</directory>
+            <directory suffix=".php">Plugins/QuickCreate/Trait</directory>
+            <file>Plugins/QuickCreate/Init.php</file>
+        </include>
+    </coverage>
+</phpunit>
