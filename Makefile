@@ -100,8 +100,8 @@ check-node:
 lint: check-docker upd
 	@echo "Running PHP CodeSniffer..."
 	@echo ""
-	@docker compose exec facturascripts sh -c 'cd /var/www/html && echo "→ Installing phpcs if needed..." && if [ ! -f vendor/bin/phpcs ]; then php84 /usr/local/bin/composer require --dev squizlabs/php_codesniffer --no-interaction; fi'
-	@docker compose exec facturascripts sh -c 'cd /var/www/html/Plugins/QuickCreate && php84 /var/www/html/vendor/bin/phpcs --colors'
+	@docker compose exec facturascripts sh -c 'mkdir -p /tmp/fs-devtools && cd /tmp/fs-devtools && echo "→ Installing phpcs if needed..." && if [ ! -f vendor/bin/phpcs ]; then php84 /usr/local/bin/composer require --dev squizlabs/php_codesniffer --no-interaction; fi'
+	@docker compose exec facturascripts sh -c 'cd /var/www/html/Plugins/QuickCreate && php84 /tmp/fs-devtools/vendor/bin/phpcs --colors'
 	@echo ""
 	@echo "✅ Lint check completed!"
 
@@ -125,8 +125,8 @@ format-js: check-node
 format: check-docker upd
 	@echo "Running PHP CS Fixer..."
 	@echo ""
-	@docker compose exec facturascripts sh -c 'cd /var/www/html && echo "→ Installing php-cs-fixer if needed..." && if [ ! -f vendor/bin/php-cs-fixer ]; then php84 /usr/local/bin/composer require --dev friendsofphp/php-cs-fixer --no-interaction; fi'
-	@docker compose exec facturascripts sh -c 'cd /var/www/html/Plugins/QuickCreate && php84 /var/www/html/vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.php --verbose'
+	@docker compose exec facturascripts sh -c 'mkdir -p /tmp/fs-devtools && cd /tmp/fs-devtools && echo "→ Installing php-cs-fixer if needed..." && if [ ! -f vendor/bin/php-cs-fixer ]; then php84 /usr/local/bin/composer require --dev friendsofphp/php-cs-fixer --no-interaction; fi'
+	@docker compose exec facturascripts sh -c 'cd /var/www/html/Plugins/QuickCreate && php84 /tmp/fs-devtools/vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.php --verbose'
 	@echo ""
 	@echo "✅ Code formatting completed!"
 
@@ -134,14 +134,14 @@ format: check-docker upd
 test: check-docker upd
 	@echo "Running unit tests..."
 	@echo ""
-	@docker compose exec facturascripts sh -c 'cd /var/www/html && echo "→ Installing PHPUnit if needed..." && if [ ! -f vendor/bin/phpunit ]; then php84 /usr/local/bin/composer require --dev phpunit/phpunit --no-interaction; fi'
+	@docker compose exec facturascripts sh -c 'mkdir -p /tmp/fs-devtools && cd /tmp/fs-devtools && echo "→ Installing PHPUnit if needed..." && if [ ! -f vendor/bin/phpunit ]; then php84 /usr/local/bin/composer require --dev phpunit/phpunit --no-interaction; fi'
 	@docker compose exec facturascripts sh -c 'cd /var/www/html && echo "→ Setting up test environment..." && mkdir -p Test/Plugins && cp -r Plugins/QuickCreate/Test/main/* Test/Plugins/ 2>/dev/null || true && cp Plugins/QuickCreate/Test/bootstrap.php Test/bootstrap.php 2>/dev/null || true && cp Plugins/QuickCreate/Test/install-plugins.php Test/install-plugins.php 2>/dev/null || true'
 	@docker compose exec facturascripts sh -c 'cd /var/www/html && test -f Test/Plugins/install-plugins.txt || (echo "❌ Error: No tests found in Test/main/" && exit 1)'
 	@docker compose exec facturascripts sh -c 'cd /var/www/html && echo "→ Installing test plugins..." && php84 Test/install-plugins.php'
 	@docker compose exec facturascripts sh -c 'cd /var/www/html && test -f phpunit-plugins.xml || echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><phpunit bootstrap=\"Test/bootstrap.php\" colors=\"true\"><testsuites><testsuite name=\"PluginTests\"><directory>Test/Plugins</directory></testsuite></testsuites></phpunit>" > phpunit-plugins.xml'
 	@echo "→ Running PHPUnit tests..."
 	@echo ""
-	@docker compose exec facturascripts sh -c 'cd /var/www/html && php84 vendor/bin/phpunit -c phpunit-plugins.xml'
+	@docker compose exec facturascripts sh -c 'cd /var/www/html && php84 /tmp/fs-devtools/vendor/bin/phpunit -c phpunit-plugins.xml'
 	@echo ""
 	@echo "✅ Tests completed!"
 
